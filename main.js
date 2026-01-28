@@ -224,3 +224,21 @@ document.addEventListener("touchstart", (e) => {
   kirby.dy = jump;
   e.preventDefault();
 }, { passive: false });
+
+const btnStart = document.getElementById("btnStart");
+
+// Clic PC
+btnStart.addEventListener("click", startGame);
+
+// Touch celular
+btnStart.addEventListener("touchstart", (e) => {
+  startGame();
+  e.preventDefault(); // evita que se genere clic doble
+}, { passive: false });
+
+// Empezar tocando la pantalla
+document.addEventListener("touchstart", function handler(e) {
+  startGame();
+  // eliminar este listener después de empezar
+  document.removeEventListener("touchstart", handler);
+}, { passive: false });

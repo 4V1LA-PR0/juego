@@ -34,3 +34,12 @@ button {
   color: white;
   cursor: pointer;
 }
+
+#start {
+  position: relative; 
+  z-index: 1000; /* arriba del canvas */
+}
+
+canvas {
+  z-index: 1; /* debajo del start */
+}
