@@ -2,23 +2,21 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Kirby Flappy Flowers 🌸</title>
+  <title>Flappy Kirby 🌸</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <link rel="stylesheet" href="main.css">
 </head>
 <body>
 
 <div id="start">
-  <h1>🌸 Kirby Flappy Flowers 🌸</h1>
-  <p>Presiona espacio para volar y recolectar flores</p>
-  <button onclick="startGame()">Empezar</button>
+  <h1>🌸 Flappy Kirby 🌸</h1>
+  <button id="btnStart">Empezar</button>
+  <p>Toca la pantalla para volar</p>
 </div>
 
-<canvas id="game" width="800" height="500"></canvas>
+<canvas id="game" width="360" height="640"></canvas>
 
-<div id="final">
-  <h1>🌸 Para ti 💗</h1>
-  <p>Kirby trajo todas las flores</p>
-</div>
+<div id="final"></div>
 
 <script src="main.js"></script>
 </body>
