@@ -1,9 +1,22 @@
 body {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #bdefff;
-  text-align: center;
+  padding: 0;
+  background: #bdefff; /* o el color que quieras como borde */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
 }
+
+canvas {
+  display: block;
+  width: 100%;      /* ocupa todo el ancho del móvil */
+  height: auto;     /* mantiene proporción */
+  max-width: 360px; /* opcional: para no deformar en pantallas grandes */
+  border-radius: 15px;
+  background: none; /* el fondo lo dibujamos en JS */
+}
+
 
 /* PANTALLA INICIO */
 #start {
@@ -26,15 +39,6 @@ body {
   background: #ff69b4;
   color: white;
   cursor: pointer;
-}
-
-/* CANVAS */
-canvas {
-  display: none;         /* 👈 oculto al inicio */
-  margin: auto;
-  background: #9ee7ff;
-  z-index: 1;
-  touch-action: none;    /* 👈 CLAVE para móvil */
 }
 
 /* FINAL */
