@@ -1,20 +1,21 @@
 body {
   margin: 0;
   padding: 0;
-  background: #bdefff; /* o el color que quieras como borde */
+  background: #bdefff;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
 }
 
 canvas {
   display: block;
-  width: 100%;      /* ocupa todo el ancho del móvil */
-  height: auto;     /* mantiene proporción */
-  max-width: 360px; /* opcional: para no deformar en pantallas grandes */
+  max-width: 100%;
+  height: auto;
   border-radius: 15px;
-  background: none; /* el fondo lo dibujamos en JS */
+  background: none;
+  touch-action: none; /* Evita scroll en móviles */
 }
 
 
