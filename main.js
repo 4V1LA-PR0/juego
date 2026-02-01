@@ -77,8 +77,13 @@ btnStart.addEventListener("touchstart", (e) => {
 }, { passive: false });
 
 function startGame() {
+  // reinicio al nivel 1
+  level = 1;
   startScreen.style.display = "none";
   finalScreen.style.display = "none";
+  document.getElementById("cardGame").classList.add("hidden");
+  // ocultar scoreboard si estaba visible
+  if (scoreBoard) scoreBoard.style.display = "none";
   canvas.style.display = "block";
 
   gameRunning = true;
@@ -304,7 +309,9 @@ function startCatchGame() {
   fallingObjects = [];
   startTime = Date.now();
   finalScreen.style.display = "none";
+  // mostrar canvas y el scoreBoard (por si estaban ocultos al pasar a nivel 3)
   canvas.style.display = "block";
+  if (scoreBoard) scoreBoard.style.display = "block";
   scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: 60s`;
   
   // Generar objetos continuamente (más lentamente)
@@ -524,6 +531,8 @@ canvas.addEventListener("touchstart", e => {
 
 function endCatchGame() {
   gameRunning = false;
+  // prevenir que el timeout global se dispare después (si quedó activo)
+  clearTimeout(gameTimer);
   canvas.style.display = "none";
   finalScreen.style.display = "flex";
   finalScreen.style.background = "#fff0f5";
@@ -534,7 +543,7 @@ function endCatchGame() {
               <p>¡Asi es Doñita!</p>`;
   } else if (score >= 7) {
     result = `<h1>Un poco mas</h1>
-              <p>Casi lo logras Doña/p>`;
+              <p>Casi lo logras Doña</p>`;
   } else if (score >= 5) {
     result = `<h1>Buen intento </h1>
               <p>Si no gana le robo los lapices</p>`;
@@ -547,7 +556,212 @@ function endCatchGame() {
     ${result}
     <p>🌸 Rosas recolectadas: ${score}/${targetFlowers}</p>
     <p>❤️ Vidas restantes: ${lives}</p>
-    <button onclick="location.reload()">Volver a jugar</button>
+    <button id="btnNextLevel">Siguiente nivel ➜</button>
   `;
+
+  const btnNextLevel = document.getElementById("btnNextLevel");
+  btnNextLevel.addEventListener("click", startCardGame);
+  btnNextLevel.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startCardGame();
+  }, { passive: false });
 }
+
+//nivel 3
+const images = [
+  "ella/tu.jpg",
+  "ella/tu2.jpg",
+  "ella/tu3.jpg",
+  "ella/tu4.jpg",
+  "ella/tu5.jpg",
+  "ella/tu6.jpg",
+  "ella/tu7.png",
+  "ella/tu8.jpg",
+ 
+];
+
+let cards = [];
+let firstCard = null;
+let secondCard = null;
+let lockBoard = false;
+let matches = 0;
+// temporizador nivel 3
+let cardTimerInterval = null;
+let cardTimeRemaining = 60; // segundos
+let cardTimeout = null;
+
+function startCardGame() {
+  level = 3;
+  // evitar que el temporizador del nivel 2 siga ejecutándose
+  clearTimeout(gameTimer);
+  // detener lógica del nivel 2
+  gameRunning = false;
+  // ocultar canvas y scoreBoard del nivel 2
+  canvas.style.display = "none";
+  if (scoreBoard) scoreBoard.style.display = "none";
+  // ocultar/limpiar ambos elementos finales por si alguno quedó visible
+  const finalDiv = document.getElementById("final");
+  const finalScreenDiv = document.getElementById("finalScreen");
+  if (finalDiv) {
+    finalDiv.style.display = "none";
+    finalDiv.innerHTML = "";
+  }
+  if (finalScreenDiv) {
+    finalScreenDiv.style.display = "none";
+    finalScreenDiv.innerHTML = "";
+  }
+  // limpiar scoreBoard
+  if (scoreBoard) scoreBoard.textContent = "";
+  document.getElementById("cardGame").classList.remove("hidden");
+  const board = document.getElementById("gameBoard");
+  board.innerHTML = "";
+
+  matches = 0;
+  firstCard = null;
+  secondCard = null;
+  lockBoard = false;
+
+  cards = [...images, ...images]
+    .sort(() => 0.5 - Math.random());
+
+  cards.forEach(img => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <div class="card-inner">
+        <div class="card-face card-front"><img src="${img}"></div>
+        <div class="card-face card-back"><img src="ella/fondo.png"></div>
+      </div>
+    `;
+    card.addEventListener("click", () => flipCard(card, img));
+    board.appendChild(card);
+  });
+
+  // Crear/mostrar temporizador de 60s dentro de #cardGame
+  const cardGameDiv = document.getElementById("cardGame");
+  let timerEl = document.getElementById("cardTimer");
+  if (!timerEl) {
+    timerEl = document.createElement("div");
+    timerEl.id = "cardTimer";
+    timerEl.style.color = "#fff";
+    timerEl.style.fontSize = "22px";
+    timerEl.style.marginBottom = "12px";
+    cardGameDiv.insertBefore(timerEl, board);
+  }
+  // reiniciar y arrancar
+  clearInterval(cardTimerInterval);
+  clearTimeout(cardTimeout);
+  cardTimeRemaining = 60;
+  timerEl.textContent = `⏱️ ${cardTimeRemaining}s`;
+  cardTimerInterval = setInterval(() => {
+    cardTimeRemaining -= 1;
+    timerEl.textContent = `⏱️ ${cardTimeRemaining}s`;
+    if (cardTimeRemaining <= 0) {
+      clearInterval(cardTimerInterval);
+      endCardGame();
+    }
+  }, 1000);
+  cardTimeout = setTimeout(() => {
+    clearInterval(cardTimerInterval);
+    endCardGame();
+  }, 60 * 1000);
+}
+
+function flipCard(card, img) {
+  if (lockBoard || card === firstCard) return;
+
+  card.classList.add("flip");
+
+  if (!firstCard) {
+    firstCard = card;
+    firstCard.dataset.img = img;
+    return;
+  }
+
+  secondCard = card;
+  secondCard.dataset.img = img;
+  lockBoard = true;
+
+  checkMatch();
+}
+
+function checkMatch() {
+  if (firstCard.dataset.img === secondCard.dataset.img) {
+    matches++;
+    resetTurn();
+
+    if (matches === images.length) {
+      setTimeout(winCardGame, 500);
+    }
+  } else {
+    setTimeout(() => {
+      firstCard.classList.remove("flip");
+      secondCard.classList.remove("flip");
+      resetTurn();
+    }, 800);
+  }
+}
+
+function resetTurn() {
+  firstCard = null;
+  secondCard = null;
+  lockBoard = false;
+}
+
+function winCardGame() {
+  // limpiar temporizador
+  clearInterval(cardTimerInterval);
+  clearTimeout(cardTimeout);
+
+  document.getElementById("cardGame").classList.add("hidden");
+  finalScreen.classList.remove("hidden");
+  finalScreen.innerHTML = `
+    <h1>💖 ¡Ganaste! 💖</h1>
+    <p>Encontraste todos los pares — jajjaa</p>
+    <img src="img/ganastes.png" width="180">
+    <button id="btnRestart">Reiniciar</button>
+  `;
+
+  const btnRestart = document.getElementById("btnRestart");
+  btnRestart.addEventListener("click", () => {
+    startGame();
+  });
+  btnRestart.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startGame();
+  }, { passive: false });
+}
+
+function endCardGame() {
+  // termina el nivel 3 por tiempo
+  lockBoard = true;
+  clearInterval(cardTimerInterval);
+  clearTimeout(cardTimeout);
+  document.getElementById("cardGame").classList.add("hidden");
+  finalScreen.classList.remove("hidden");
+  const totalPairs = images.length;
+  const foundPairs = matches;
+  let msg = "";
+  if (foundPairs === totalPairs) {
+    msg = `<h1>💖 ¡Ganaste! 💖</h1><p>Encontraste todos los pares</p>`;
+  } else if (foundPairs > 0) {
+    msg = `<h1>⏱️ Tiempo!</h1><p>Encontraste ${foundPairs}/${totalPairs} pares</p>`;
+  } else {
+    msg = `<h1>⏱️ Tiempo!</h1><p>No encontraste pares</p>`;
+  }
+  finalScreen.innerHTML = `
+    ${msg}
+    <button id="btnRestart">Reiniciar</button>
+  `;
+
+  const btnRestart2 = document.getElementById("btnRestart");
+  btnRestart2.addEventListener("click", () => {
+    startGame();
+  });
+  btnRestart2.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startGame();
+  }, { passive: false });
+}
+
 });
