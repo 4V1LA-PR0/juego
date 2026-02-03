@@ -59,7 +59,7 @@ canvas {
 #finalScreen {
   position: absolute;
   inset: 0;
-  display: none;
+  display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -67,6 +67,10 @@ canvas {
   z-index: 10;
   text-align: center;
   padding: 20px;
+}
+
+#finalScreen.hidden {
+  display: none;
 }
 
 #finalScreen h1 {
@@ -220,4 +224,12 @@ canvas {
 
 .hidden {
   display: none;
+}
+
+/*nivel 4*/
+#info {
+  position: absolute;
+  top: 10px;
+  width: 100%;
+  text-align: center;
 }

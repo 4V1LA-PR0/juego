@@ -29,7 +29,7 @@ window.addEventListener("resize", resizeCanvas);
 window.addEventListener("orientationchange", resizeCanvas);
 
 const startScreen = document.getElementById("start");
-const finalScreen = document.getElementById("final");
+const finalScreen = document.getElementById("finalScreen");
 const btnStart = document.getElementById("btnStart");
 
 let gameRunning = false;
@@ -551,9 +551,12 @@ function endCatchGame() {
     result = `<h1>Perdiste</h1>
               <p>Nambe doña</p>`;
   }
-  
+  // elegir imagen final según si ganó o no
+  const finalImg = score >= targetFlowers ? kirbyFeliz : kirbyTriste;
+
   finalScreen.innerHTML = `
     ${result}
+    <img src="${finalImg}" width="180">
     <p>🌸 Rosas recolectadas: ${score}/${targetFlowers}</p>
     <p>❤️ Vidas restantes: ${lives}</p>
     <button id="btnNextLevel">Siguiente nivel ➜</button>
@@ -600,16 +603,12 @@ function startCardGame() {
   canvas.style.display = "none";
   if (scoreBoard) scoreBoard.style.display = "none";
   // ocultar/limpiar ambos elementos finales por si alguno quedó visible
-  const finalDiv = document.getElementById("final");
-  const finalScreenDiv = document.getElementById("finalScreen");
-  if (finalDiv) {
-    finalDiv.style.display = "none";
-    finalDiv.innerHTML = "";
-  }
-  if (finalScreenDiv) {
+ const finalScreenDiv = document.getElementById("finalScreen");
+if (finalScreenDiv) {
     finalScreenDiv.style.display = "none";
     finalScreenDiv.innerHTML = "";
-  }
+}
+
   // limpiar scoreBoard
   if (scoreBoard) scoreBoard.textContent = "";
   document.getElementById("cardGame").classList.remove("hidden");
@@ -709,26 +708,31 @@ function resetTurn() {
 }
 
 function winCardGame() {
-  // limpiar temporizador
   clearInterval(cardTimerInterval);
   clearTimeout(cardTimeout);
 
   document.getElementById("cardGame").classList.add("hidden");
+
+  finalScreen.style.display = "flex"; // 👈 Agregar esta línea
   finalScreen.classList.remove("hidden");
   finalScreen.innerHTML = `
     <h1>💖 ¡Ganaste! 💖</h1>
     <p>Encontraste todos los pares — jajjaa</p>
     <img src="img/ganastes.png" width="180">
-    <button id="btnRestart">Reiniciar</button>
+    <button id="btnNextLevel">Siguiente nivel ➜</button>
   `;
 
-  const btnRestart = document.getElementById("btnRestart");
-  btnRestart.addEventListener("click", () => {
-    startGame();
+  const btnNextLevel = document.getElementById("btnNextLevel"); // 👈 Crear variable
+  btnNextLevel.addEventListener("click", () => {
+    finalScreen.style.display = "none";
+    startBrickGame();
   });
-  btnRestart.addEventListener("touchstart", (e) => {
+  
+  // 👇 Agregar también listener para touch
+  btnNextLevel.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    startGame();
+    finalScreen.style.display = "none";
+    startBrickGame();
   }, { passive: false });
 }
 
@@ -742,26 +746,290 @@ function endCardGame() {
   const totalPairs = images.length;
   const foundPairs = matches;
   let msg = "";
+  let showNextBtn = false;
   if (foundPairs === totalPairs) {
     msg = `<h1>💖 ¡Ganaste! 💖</h1><p>Encontraste todos los pares</p>`;
+    showNextBtn = true;
   } else if (foundPairs > 0) {
     msg = `<h1>⏱️ Tiempo!</h1><p>Encontraste ${foundPairs}/${totalPairs} pares</p>`;
+    showNextBtn = true;
   } else {
     msg = `<h1>⏱️ Tiempo!</h1><p>No encontraste pares</p>`;
   }
   finalScreen.innerHTML = `
     ${msg}
-    <button id="btnRestart">Reiniciar</button>
+    <button id="btnAction">${showNextBtn ? 'Siguiente nivel ➜' : 'Reiniciar'}</button>
   `;
 
-  const btnRestart2 = document.getElementById("btnRestart");
-  btnRestart2.addEventListener("click", () => {
-    startGame();
+  const btnAction = document.getElementById("btnAction");
+  btnAction.addEventListener("click", () => {
+    if (showNextBtn) {
+      startBrickGame();
+    } else {
+      startGame();
+    }
   });
-  btnRestart2.addEventListener("touchstart", (e) => {
+  btnAction.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    startGame();
+    if (showNextBtn) {
+      startBrickGame();
+    } else {
+      startGame();
+    }
   }, { passive: false });
 }
 
 });
+
+// ===== NIVEL 4 - BREAKOUT GAME =====
+let brickGameState = {
+  ballRadius: 8,
+  x: 0,
+  y: 0,
+  dx: 20,  // 👈 Cambia esto, 20 es demasiado rápido
+  dy: -20, // 👈 Cambia esto también
+  paddleHeight: 10,
+  paddleWidth: 75,
+  paddleX: 0,
+  rightPressed: false,
+  leftPressed: false,
+  score: 0,
+  gameRunning: false,
+  bricks: [],
+  brickRowCount: 5,
+  brickColumnCount: 7,
+  brickWidth: 55,
+  brickHeight: 20,
+  brickPadding: 10,
+  brickOffsetTop: 30,
+  brickOffsetLeft: 30,
+  brickAnimationId: null,
+  keydownHandler: null,
+  keyupHandler: null,
+  kirbyBallImg: null,
+  ballRotation: 0  // 👈 Agregar rotación aquí
+};
+
+function startBrickGame() {
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  const finalScreen = document.getElementById("finalScreen");
+
+  brickGameState.gameRunning = true;
+
+  if (!brickGameState.kirbyBallImg) {
+    brickGameState.kirbyBallImg = new Image();
+    brickGameState.kirbyBallImg.src = "img/pelota.png";
+  }
+
+  finalScreen.style.display = "none";
+  canvas.style.display = "block";
+
+  if (document.getElementById("scoreBoard")) {
+    document.getElementById("scoreBoard").style.display = "none";
+  }
+  document.getElementById("cardGame").classList.add("hidden");
+
+  // Reiniciar estado
+  brickGameState.score = 0;
+  brickGameState.ballRadius = 8;
+  brickGameState.ballRotation = 0; // 👈 Reiniciar rotación
+  brickGameState.x = canvas.width / 2;
+  brickGameState.y = canvas.height - 30;
+  brickGameState.dx = 2;
+  brickGameState.dy = -2;
+  brickGameState.paddleX = (canvas.width - brickGameState.paddleWidth) / 2;
+  brickGameState.rightPressed = false;
+  brickGameState.leftPressed = false;
+  brickGameState.bricks = [];
+
+  // Ajuste automático del ancho de ladrillos
+  const totalPadding = (brickGameState.brickColumnCount - 1) * brickGameState.brickPadding;
+  brickGameState.brickWidth =
+    (canvas.width - brickGameState.brickOffsetLeft * 2 - totalPadding) /
+    brickGameState.brickColumnCount;
+
+  // Crear ladrillos
+  for (let c = 0; c < brickGameState.brickColumnCount; c++) {
+    brickGameState.bricks[c] = [];
+    for (let r = 0; r < brickGameState.brickRowCount; r++) {
+      brickGameState.bricks[c][r] = { x: 0, y: 0, status: 1 };
+    }
+  }
+
+  // Controles
+  brickGameState.keydownHandler = (e) => {
+    if (e.key === "Right" || e.key === "ArrowRight") brickGameState.rightPressed = true;
+    if (e.key === "Left" || e.key === "ArrowLeft") brickGameState.leftPressed = true;
+  };
+
+  brickGameState.keyupHandler = (e) => {
+    if (e.key === "Right" || e.key === "ArrowRight") brickGameState.rightPressed = false;
+    if (e.key === "Left" || e.key === "ArrowLeft") brickGameState.leftPressed = false;
+  };
+
+  document.addEventListener("keydown", brickGameState.keydownHandler);
+  document.addEventListener("keyup", brickGameState.keyupHandler);
+
+  // Touch
+  canvas.addEventListener("touchmove", (e) => {
+    if (!brickGameState.gameRunning) return;
+    const rect = canvas.getBoundingClientRect();
+    const touchX = e.touches[0].clientX - rect.left;
+    brickGameState.paddleX = touchX - brickGameState.paddleWidth / 2;
+    if (brickGameState.paddleX < 0) brickGameState.paddleX = 0;
+    if (brickGameState.paddleX + brickGameState.paddleWidth > canvas.width) {
+      brickGameState.paddleX = canvas.width - brickGameState.paddleWidth;
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  brickGameLoop(canvas, ctx, finalScreen);
+}
+
+function brickGameLoop(canvas, ctx, finalScreen) {
+  if (!brickGameState.gameRunning) return;
+
+  ctx.fillStyle = "#1a1a2e";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Dibujar ladrillos
+  for (let c = 0; c < brickGameState.brickColumnCount; c++) {
+    for (let r = 0; r < brickGameState.brickRowCount; r++) {
+      if (brickGameState.bricks[c][r].status === 1) {
+        const brickX = c * (brickGameState.brickWidth + brickGameState.brickPadding) + brickGameState.brickOffsetLeft;
+        const brickY = r * (brickGameState.brickHeight + brickGameState.brickPadding) + brickGameState.brickOffsetTop;
+        brickGameState.bricks[c][r].x = brickX;
+        brickGameState.bricks[c][r].y = brickY;
+
+        ctx.beginPath();
+        ctx.rect(brickX, brickY, brickGameState.brickWidth, brickGameState.brickHeight);
+        ctx.fillStyle = "#ff0066";
+        ctx.fill();
+        ctx.closePath();
+      }
+    }
+  }
+
+  // Pelota con rotación
+  if (brickGameState.kirbyBallImg && brickGameState.kirbyBallImg.complete) {
+    const size = brickGameState.ballRadius * 4;
+    
+    ctx.save();
+    ctx.translate(brickGameState.x, brickGameState.y);
+    ctx.rotate(brickGameState.ballRotation);
+    ctx.drawImage(
+      brickGameState.kirbyBallImg,
+      -size / 2,
+      -size / 2,
+      size,
+      size
+    );
+    ctx.restore();
+    
+    // Incrementar rotación
+    brickGameState.ballRotation += 0.1;
+  } else {
+    // Si la imagen no carga, usa el círculo normal
+    ctx.beginPath();
+    ctx.arc(brickGameState.x, brickGameState.y, brickGameState.ballRadius, 0, Math.PI * 2);
+    ctx.fillStyle = "#00ffcc";
+    ctx.fill();
+    ctx.closePath();
+  }
+
+  // Paleta
+  ctx.beginPath();
+  ctx.rect(brickGameState.paddleX, canvas.height - brickGameState.paddleHeight, brickGameState.paddleWidth, brickGameState.paddleHeight);
+  ctx.fillStyle = "#ffffff";
+  ctx.fill();
+  ctx.closePath();
+
+  // Puntaje
+  ctx.font = "16px Arial";
+  ctx.fillStyle = "#fff";
+  ctx.fillText("Puntos: " + brickGameState.score, 8, 20);
+
+  // Colisiones con ladrillos
+  for (let c = 0; c < brickGameState.brickColumnCount; c++) {
+    for (let r = 0; r < brickGameState.brickRowCount; r++) {
+      const b = brickGameState.bricks[c][r];
+      if (b.status === 1) {
+        if (
+          brickGameState.x > b.x &&
+          brickGameState.x < b.x + brickGameState.brickWidth &&
+          brickGameState.y > b.y &&
+          brickGameState.y < b.y + brickGameState.brickHeight
+        ) {
+          brickGameState.dy = -brickGameState.dy;
+          b.status = 0;
+          brickGameState.score++;
+
+          if (brickGameState.score === brickGameState.brickRowCount * brickGameState.brickColumnCount) {
+            endBrickGame(true, canvas, finalScreen);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // Rebotes
+  if (brickGameState.x + brickGameState.dx > canvas.width - brickGameState.ballRadius || brickGameState.x + brickGameState.dx < brickGameState.ballRadius) {
+    brickGameState.dx = -brickGameState.dx;
+  }
+  if (brickGameState.y + brickGameState.dy < brickGameState.ballRadius) {
+    brickGameState.dy = -brickGameState.dy;
+  } else if (brickGameState.y + brickGameState.dy > canvas.height - brickGameState.ballRadius) {
+    if (brickGameState.x > brickGameState.paddleX && brickGameState.x < brickGameState.paddleX + brickGameState.paddleWidth) {
+      brickGameState.dy = -brickGameState.dy;
+    } else {
+      endBrickGame(false, canvas, finalScreen);
+      return;
+    }
+  }
+
+  // Movimiento paleta
+  if (brickGameState.rightPressed && brickGameState.paddleX < canvas.width - brickGameState.paddleWidth) {
+    brickGameState.paddleX += 5;
+  } else if (brickGameState.leftPressed && brickGameState.paddleX > 0) {
+    brickGameState.paddleX -= 5;
+  }
+
+  // Actualizar pelota
+  brickGameState.x += brickGameState.dx;
+  brickGameState.y += brickGameState.dy;
+
+  brickGameState.brickAnimationId = requestAnimationFrame(() => brickGameLoop(canvas, ctx, finalScreen));
+}
+
+function endBrickGame(won, canvas, finalScreen) {
+  brickGameState.gameRunning = false;
+
+  if (brickGameState.brickAnimationId) {
+    cancelAnimationFrame(brickGameState.brickAnimationId);
+    brickGameState.brickAnimationId = null;
+  }
+
+  document.removeEventListener("keydown", brickGameState.keydownHandler);
+  document.removeEventListener("keyup", brickGameState.keyupHandler);
+
+  canvas.style.display = "none";
+  finalScreen.style.display = "flex";
+  finalScreen.style.background = won ? "#fff0f5" : "#ffe4e1";
+
+  finalScreen.innerHTML = won
+    ? `<h1>🎉 ¡GANASTE! 🎉</h1>
+       <img src="img/ganastes.png" width="180">
+       <p>¡Rompiste todos los bloques! 💥</p>
+       <button id="btnRestart">Reiniciar</button>`
+    : `<h1>💀 GAME OVER 💀</h1>
+       <img src="img/perdio.png" width="180">
+       <p>Puntos: ${brickGameState.score}/${brickGameState.brickRowCount * brickGameState.brickColumnCount}</p>
+       <button id="btnRestart">Reiniciar</button>`;
+
+  document.getElementById("btnRestart").addEventListener("click", () => {
+    finalScreen.style.display = "none";
+    document.getElementById("start").style.display = "flex";
+  });
+}
