@@ -3,27 +3,18 @@ document.addEventListener("DOMContentLoaded", () => {
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-// Hacer canvas responsive para celulares
 function resizeCanvas() {
   const maxWidth = window.innerWidth * 0.95;
   const maxHeight = window.innerHeight * 0.9;
-  const ratio = 360 / 640; // Proporción original del canvas
-  
+  const ratio = 360 / 640;
   let newWidth = maxWidth;
   let newHeight = newWidth / ratio;
-  
-  if (newHeight > maxHeight) {
-    newHeight = maxHeight;
-    newWidth = newHeight * ratio;
-  }
-  
+  if (newHeight > maxHeight) { newHeight = maxHeight; newWidth = newHeight * ratio; }
   canvas.style.width = newWidth + "px";
   canvas.style.height = newHeight + "px";
   canvas.style.display = "block";
   canvas.style.margin = "auto";
 }
-
-// Aplicar tamaño responsive al cargar y al cambiar de orientación
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 window.addEventListener("orientationchange", resizeCanvas);
@@ -35,1001 +26,664 @@ const btnStart = document.getElementById("btnStart");
 let gameRunning = false;
 let level = 1;
 
-// Kirby
-const kirby = { x: 80, y: 300, w: 40, h: 40, dy: 0 };
-const kirbyImg = new Image();
-kirbyImg.src = "img/kirby.png";
-
-// Imágenes finales
-const kirbyFeliz = "img/ganastes.png";
-const kirbyTriste = "img/perdio.png";
+const assetRoot = "../juego/";
+const kirby = { x: 70, y: 70, w: 70, h: 70, dy: 0 };
+const kirbyBaja = new Image(); kirbyBaja.src = assetRoot + "img/kirby_baja.png";
+const kirbySube = new Image(); kirbySube.src = assetRoot + "img/kirby_sube.png";
+const kirbyFeliz = assetRoot + "img/ganastes.png";
+const kirbyTriste = assetRoot + "img/perdio.png";
 
 function drawBackground() {
-  ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+  if (bgImg.complete && bgImg.naturalWidth > 0) ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+  else { ctx.fillStyle = "#4a0e8f"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
 }
+const bgImg = new Image(); bgImg.src = assetRoot + "img/fondo.jpg";
 
-//fondo 
-const bgImg = new Image();
-bgImg.src = "img/fondo.jpg";
-
-// Obstáculos
 let clouds = [];
-const cloudImg = new Image();
-cloudImg.src = "img/nube.png";
-
-// Flores
+const cloudImg = new Image(); cloudImg.src = assetRoot + "img/nube.png";
 let flowers = [];
-const flowerImg = new Image();
-flowerImg.src = "img/flor.png";
-
+const flowerImg = new Image(); flowerImg.src = assetRoot + "img/flor.png";
 let collectedFlowers = 0;
-
-// Física
-const gravity = 0.30;
-const jump = -5;
+const gravity = 0.30, jump = -5;
 let frame = 0;
 
-// ===== INICIO =====
 btnStart.addEventListener("click", startGame);
-btnStart.addEventListener("touchstart", (e) => {
-  e.preventDefault();
-  startGame();
-}, { passive: false });
+btnStart.addEventListener("touchstart", (e) => { e.preventDefault(); startGame(); }, { passive: false });
 
 function startGame() {
-  // reinicio al nivel 1
   level = 1;
   startScreen.style.display = "none";
   finalScreen.style.display = "none";
+  finalScreen.classList.add("hidden");
+  document.getElementById("level2Intro").classList.add("hidden");
   document.getElementById("cardGame").classList.add("hidden");
-  // ocultar scoreboard si estaba visible
+  document.getElementById("pencilGame").classList.add("hidden");
   if (scoreBoard) scoreBoard.style.display = "none";
   canvas.style.display = "block";
-
   gameRunning = true;
-  kirby.y = 300;
-  kirby.dy = 0;
-  clouds = [];
-  flowers = [];
-  collectedFlowers = 0;
-  frame = 0;
-
+  kirby.y = 300; kirby.dy = jump;
+  clouds = []; flowers = []; collectedFlowers = 0; frame = 0;
   loop();
 }
 
-// ===== CONTROLES =====
-document.addEventListener("keydown", e => {
-  if (e.code === "Space") kirby.dy = jump;
-});
-
-document.addEventListener("mousedown", () => kirby.dy = jump);
+document.addEventListener("keydown", e => { if (e.code === "Space" && level === 1) kirby.dy = jump; });
+document.addEventListener("mousedown", () => { if (!gameRunning || level !== 1) return; kirby.dy = jump; });
 document.addEventListener("touchstart", e => {
-  if (!gameRunning) return;
-  kirby.dy = jump;
-  e.preventDefault();
+  if (!gameRunning || level !== 1) return;
+  kirby.dy = jump; e.preventDefault();
 }, { passive: false });
 
-// ===== OBJETOS =====
-function createCloud() {
-  clouds.push({
-    x: canvas.width,
-    y: Math.random() * (canvas.height - 200),
-    w: 80,
-    h: 60
-  });
-}
+function createCloud() { clouds.push({ x: canvas.width, y: Math.random() * (canvas.height - 200), w: 80, h: 60 }); }
+function createFlower() { flowers.push({ x: canvas.width, y: Math.random() * (canvas.height - 100) + 50 }); }
 
-function createFlower() {
-  flowers.push({
-    x: canvas.width,
-    y: Math.random() * (canvas.height - 100) + 50
-  });
+function drawKirby1() {
+  const imgActual = kirby.dy < 0 ? kirbySube : kirbyBaja;
+  if (imgActual.complete && imgActual.naturalWidth > 0) ctx.drawImage(imgActual, kirby.x, kirby.y, kirby.w, kirby.h);
 }
-
-// ===== DIBUJAR =====
-function drawKirby() {
-  ctx.drawImage(kirbyImg, kirby.x, kirby.y, kirby.w, kirby.h);
-}
-
 function drawClouds() {
-  clouds.forEach(c => ctx.drawImage(cloudImg, c.x, c.y, c.w, c.h));
+  if (cloudImg.complete && cloudImg.naturalWidth > 0) clouds.forEach(c => ctx.drawImage(cloudImg, c.x, c.y, c.w, c.h));
 }
-
 function drawFlowers() {
-  flowers.forEach(f => ctx.drawImage(flowerImg, f.x - 12, f.y - 12, 24, 24));
+  flowers.forEach(f => {
+    ctx.save(); ctx.shadowColor = "#ff05b4"; ctx.shadowBlur = 15;
+    if (flowerImg.complete && flowerImg.naturalWidth > 0) ctx.drawImage(flowerImg, f.x - 12, f.y - 12, 24, 24);
+    ctx.restore();
+  });
 }
+function drawCounter() { ctx.fillStyle = "#ff69b4"; ctx.font = "20px Arial"; ctx.fillText("Flores: " + collectedFlowers, 15, 30); }
 
-function drawCounter() {
-  ctx.fillStyle = "#ff69b4";
-  ctx.font = "20px Arial";
-  ctx.fillText("Flores: " + collectedFlowers, 15, 30);
-}
-
-// ===== COLISIONES =====
 function checkCollisions() {
   clouds.forEach(c => {
-    if (
-      kirby.x < c.x + c.w - 8 &&
-      kirby.x + kirby.w > c.x + 8 &&
-      kirby.y < c.y + c.h - 8 &&
-      kirby.y + kirby.h > c.y + 8
-    ) {
-      endGame(false);
-    }
+    const margin = 20;
+    if (kirby.x + 8 < c.x + c.w - margin && kirby.x + kirby.w - 8 > c.x + margin &&
+        kirby.y + 8 < c.y + c.h - margin && kirby.y + kirby.h - 8 > c.y + margin) endGame(false);
   });
-
   flowers = flowers.filter(f => {
-    const d = Math.hypot(
-      kirby.x + kirby.w / 2 - f.x,
-      kirby.y + kirby.h / 2 - f.y
-    );
-    if (d < 20) {
-      collectedFlowers++;
-      if (collectedFlowers >= 10) endLevel1();
-      return false;
-    }
+    const d = Math.hypot(kirby.x + kirby.w / 2 - f.x, kirby.y + kirby.h / 2 - f.y);
+    if (d < 20) { collectedFlowers++; if (collectedFlowers >= 10) endLevel1(); return false; }
     return true;
   });
-
-  if (kirby.y < 0 || kirby.y + kirby.h > canvas.height) {
-    endGame(false);
-  }
+  if (kirby.y < 0 || kirby.y + kirby.h > canvas.height) endGame(false);
 }
 
-
-// ===== FIN =====
 function endGame(win) {
   if (!gameRunning) return;
   gameRunning = false;
-
   canvas.style.display = "none";
-  finalScreen.style.display = "flex";
-
-  // cambiar color de fondo según gane o pierda
+  finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
   finalScreen.style.background = win ? "#fff0f5" : "#ffe4e1";
-
   finalScreen.innerHTML = win
-    ? `<h1>!Kirby lo logró¡</h1>
-       <img src="${kirbyFeliz}" width="180">
-       <p>Gano Doñita</p>
-       <button id="btnRestart">Reiniciar</button>`
-    : `<h1>kirby a perdido</h1>
-       <img src="${kirbyTriste}" width="180">
-       <p>Usted puede doña</p>
-       <button id="btnRestart">Reiniciar</button>`;
-
+    ? `<h1>!Kirby lo logró¡</h1><img src="${kirbyFeliz}" width="180"><p>Gano Doñita</p><button id="btnRestart">Reiniciar</button>`
+    : `<h1>kirby a perdido</h1><img src="${kirbyTriste}" width="180"><p>Usted puede doña</p><button id="btnRestart">Reiniciar</button>`;
   const btnRestart = document.getElementById("btnRestart");
   btnRestart.addEventListener("click", startGame);
-  btnRestart.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    startGame();
-  }, { passive: false });
+  btnRestart.addEventListener("touchstart", (e) => { e.preventDefault(); startGame(); }, { passive: false });
 }
 
-
-// ===== LOOP =====
 function loop() {
   if (!gameRunning) return;
-
-  // 👇 FONDO PRIMERO
-  drawBackground();
-
-  kirby.dy += gravity;
-  kirby.y += kirby.dy;
-
-  frame++;
+  drawBackground(); kirby.dy += gravity; kirby.y += kirby.dy; frame++;
   if (frame % 90 === 0) createCloud();
   if (frame % 120 === 0) createFlower();
-
-  clouds.forEach(c => c.x -= 3);
-  flowers.forEach(f => f.x -= 3);
-
-  drawKirby();
-  drawClouds();
-  drawFlowers();
-  drawCounter();
-  checkCollisions();
-
+  clouds.forEach(c => c.x -= 3); flowers.forEach(f => f.x -= 3);
+  drawKirby1(); drawClouds(); drawFlowers(); drawCounter(); checkCollisions();
   requestAnimationFrame(loop);
 }
 
 function endLevel1() {
   if (!gameRunning) return;
   gameRunning = false;
-
   canvas.style.display = "none";
-  finalScreen.style.display = "flex";
+  finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
   finalScreen.style.background = "#fff0f5";
-
-  finalScreen.innerHTML = `
-    <h1>🌸 Nivel superado 🌸</h1>
-    <p>Kirby recolectó todas las flores</p>
-    <button id="btnNext">Siguiente nivel ➜</button>
-  `;
-
+  finalScreen.innerHTML = `<h1>🌸 Nivel superado 🌸</h1><p>Kirby recolectó todas las flores</p><button id="btnNext">Siguiente nivel ➜</button>`;
   const btnNext = document.getElementById("btnNext");
-
   btnNext.addEventListener("click", startCatchGame);
-  btnNext.addEventListener("touchstart", e => {
-    e.preventDefault();
-    startCatchGame();
-  }, { passive: false });
+  btnNext.addEventListener("touchstart", e => { e.preventDefault(); startCatchGame(); }, { passive: false });
 }
 
-//nivel 2 - Fruit Ninja Style Game
-let score = 0;
-let lives = 3;
-let gameTimer = null;
-let gameDuration = 60000; // 60 segundos
-let startTime = 0;
-let targetFlowers = 10; // Objetivo de flores a recolectar
+// ===== NIVEL 2 =====
+let spawnIntervalId = null, gameLoopId = null;
+let score = 0, lives = 3;
+let targetCats = 10;
 
-// Imágenes de objetos
-let rosaImg = new Image();
-rosaImg.src = "img/rosa.png";
+let gatito1Img = new Image(); gatito1Img.src = assetRoot + "img/gatito1.png";
+let gatito2Img = new Image(); gatito2Img.src = assetRoot + "img/gatito2.png";
+let gatoEnojado1Img = new Image(); gatoEnojado1Img.src = assetRoot + "img/gato_enojado1.png";
+let gatoEnojado2Img = new Image(); gatoEnojado2Img.src = assetRoot + "img/gato_enojado2.png";
+let bolaPeloImg = new Image(); bolaPeloImg.src = assetRoot + "img/raton.png";
+let pepinoImg = new Image(); pepinoImg.src = assetRoot + "img/perro.png";
+let bgLevel2Img = new Image(); bgLevel2Img.src = assetRoot + "img/fondo2.jpg";
 
-let rosafalsaImg = new Image();
-// usar la imagen de engaño para las rosas falsas
-rosafalsaImg.src = "img/engaño.png";
-
-let enganoImg = new Image();
-// segunda flor falsa (puedes reemplazar la imagen)
-enganoImg.src = "img/falsa.png";
-
-let bombaImg = new Image();
-bombaImg.src = "img/bomba.png";
-
-// Fondo del nivel 2
-let bgLevel2Img = new Image();
-bgLevel2Img.src = "img/fondo2.jpg"; // Reemplaza con tu imagen de fondo
-
-// Array de objetos que caen
 let fallingObjects = [];
 let scoreBoard = document.getElementById("scoreBoard");
-
-// Crear scoreBoard si no existe
 if (!scoreBoard) {
   scoreBoard = document.createElement("div");
   scoreBoard.id = "scoreBoard";
-  scoreBoard.style.position = "fixed";
-  scoreBoard.style.top = "10px";
-  scoreBoard.style.left = "10px";
-  scoreBoard.style.fontSize = "20px";
-  scoreBoard.style.fontWeight = "bold";
-  scoreBoard.style.color = "#FFB6D9";
-  scoreBoard.style.zIndex = "1000";
+  scoreBoard.style.cssText = "position:fixed;top:10px;left:10px;font-size:20px;font-weight:bold;color:#FFB6D9;z-index:1000;";
   document.body.appendChild(scoreBoard);
 }
 
+let scratchTimer = null;
+let scratchOverlay = document.createElement("div");
+scratchOverlay.style.cssText = "position:fixed;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;z-index:999;pointer-events:none;background:rgba(255,0,0,0.3);";
+scratchOverlay.innerHTML = `<div style="font-size:80px;color:red;text-shadow:2px 2px 8px #000;">／／／</div><div style="font-size:40px;color:white;font-weight:bold;text-shadow:2px 2px 8px #000;">¡AUCH!</div>`;
+document.body.appendChild(scratchOverlay);
+
+function playOuchSound() {
+  try {
+    const a = new (window.AudioContext || window.webkitAudioContext)();
+    const o = a.createOscillator(), g = a.createGain();
+    o.connect(g); g.connect(a.destination);
+    o.frequency.setValueAtTime(400, a.currentTime);
+    o.frequency.exponentialRampToValueAtTime(150, a.currentTime + 0.3);
+    g.gain.setValueAtTime(0.5, a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.01, a.currentTime + 0.4);
+    o.start(a.currentTime); o.stop(a.currentTime + 0.4);
+  } catch(e) {}
+}
+
+function showScratchAnimation() {
+  scratchOverlay.style.display = "flex"; playOuchSound();
+  clearTimeout(scratchTimer);
+  scratchTimer = setTimeout(() => { scratchOverlay.style.display = "none"; }, 600);
+}
+
+function stopLevel2() {
+  clearInterval(spawnIntervalId); clearInterval(gameLoopId);
+  spawnIntervalId = null; gameLoopId = null;
+}
 function startCatchGame() {
-  level = 2;
-  score = 0;
-  lives = 3;
-  gameRunning = true;
-  fallingObjects = [];
-  startTime = Date.now();
+  level = 2; gameRunning = false;
+
+  // Ocultar todo primero
+  canvas.style.display = "none";
   finalScreen.style.display = "none";
-  // mostrar canvas y el scoreBoard (por si estaban ocultos al pasar a nivel 3)
+  finalScreen.classList.add("hidden");
+  document.getElementById("level2Intro").classList.add("hidden");
+  document.getElementById("cardGame").classList.add("hidden");
+  document.getElementById("pencilGame").classList.add("hidden");
+  if (scoreBoard) scoreBoard.style.display = "none";
+
+  iniciarNivel2();
+}
+function iniciarNivel2() {
+  gameRunning = true; score = 0; lives = 3;
+  fallingObjects = [];
+  stopLevel2();
+  document.getElementById("level2Intro").classList.remove("hidden");
   canvas.style.display = "block";
-  if (scoreBoard) scoreBoard.style.display = "block";
-  scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: 60s`;
-  
-  // Generar objetos continuamente (más lentamente)
-  const spawnInterval = setInterval(() => {
-    if (!gameRunning) {
-      clearInterval(spawnInterval);
-      return;
-    }
+  finalScreen.style.display = "none"; finalScreen.classList.add("hidden"); finalScreen.innerHTML = "";
+  scratchOverlay.style.display = "none";
+  if (scoreBoard) {
+    scoreBoard.style.display = "block";
+    scoreBoard.textContent = `🐱: 0/${targetCats} | ❤️: 3`;
+  }
+
+  spawnIntervalId = setInterval(() => {
+    if (!gameRunning || level !== 2) { clearInterval(spawnIntervalId); return; }
     spawnObject();
-  }, 1000); // reducido a 1000ms para más objetos (balance)
-  
-  // Actualizar juego
-  const gameLoop = setInterval(() => {
-    if (!gameRunning) {
-      clearInterval(gameLoop);
-      return;
-    }
+  }, 1000);
+
+  gameLoopId = setInterval(() => {
+    if (!gameRunning || level !== 2) { clearInterval(gameLoopId); return; }
     updateGame();
   }, 30);
-  
-  // Actualizar cronómetro cada segundo
-  const timerInterval = setInterval(() => {
-    if (!gameRunning) {
-      clearInterval(timerInterval);
-      return;
-    }
-    const elapsed = Math.ceil((Date.now() - startTime) / 1000);
-    const remaining = Math.max(0, 60 - elapsed);
-    scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: ${remaining}s`;
-  }, 1000);
-  
-  // Terminar juego después del tiempo o cuando recolectes 10 flores
-  gameTimer = setTimeout(() => {
-    clearInterval(spawnInterval);
-    clearInterval(gameLoop);
-    clearInterval(timerInterval);
-    gameRunning = false;
-    endCatchGame();
-  }, gameDuration);
+
 }
 
-// Crear un objeto que cae
 function spawnObject() {
-  if (!gameRunning) return;
-  
-  // Probabilidades ajustadas: 35% rosa, 22% rosafals, 22% engano, 21% bomba
+  if (!gameRunning || level !== 2) return;
   const rand = Math.random();
-  let type;
-  if (rand < 0.35) {
-    type = "rosa";
-  } else if (rand < 0.57) {
-    type = "rosafals";
-  } else if (rand < 0.79) {
-    type = "engano";
-  } else {
-    type = "bomba";
-  }
-  
-  fallingObjects.push({
-    x: Math.random() * (canvas.width - 50),
-    y: -50,
-    size: 50,
-    vy: 2.8 + Math.random() * 2, // Velocidad aumentada para mayor dificultad
-    vx: (Math.random() - 0.5) * 1,
-    type: type,
-    active: true,
-    rotation: 0
-  });
+  let type, img;
+  if (rand < 0.30) { type = "gatito1"; img = gatito1Img; }
+  else if (rand < 0.60) { type = "gatito2"; img = gatito2Img; }
+  else if (rand < 0.75) { type = "enojado1"; img = gatoEnojado1Img; }
+  else if (rand < 0.90) { type = "enojado2"; img = gatoEnojado2Img; }
+  else if (rand < 0.95) { type = "bola"; img = bolaPeloImg; }
+  else { type = "pepino"; img = pepinoImg; }
+  fallingObjects.push({ x: Math.random() * (canvas.width - 50), y: -50, size: 50, vy: 2.8 + Math.random() * 2, vx: (Math.random() - 0.5), type, img, active: true, rotation: 0 });
 }
 
-// Actualizar posiciones de objetos
 function updateGame() {
-  // Dibujar fondo del nivel 2
-  if (bgLevel2Img.complete) {
-    ctx.drawImage(bgLevel2Img, 0, 0, canvas.width, canvas.height);
-  } else {
-    // Si la imagen no ha cargado, dibuja un fondo de color
-    ctx.fillStyle = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-  }
-  
+  if (!gameRunning || level !== 2) return;
+  const c = document.getElementById("game"), cx = c.getContext("2d");
+  cx.clearRect(0, 0, c.width, c.height);
+  if (bgLevel2Img.complete && bgLevel2Img.naturalWidth > 0) cx.drawImage(bgLevel2Img, 0, 0, c.width, c.height);
+  else { cx.fillStyle = "#4a0e8f"; cx.fillRect(0, 0, c.width, c.height); }
   fallingObjects = fallingObjects.filter(obj => {
     if (!obj.active) return false;
-    
-    // Actualizar posición
-    obj.y += obj.vy;
-    obj.x += obj.vx;
-    
-    // Rotación simple
-    obj.rotation += 0.05;
-    
-    // Dibujar objeto según tipo
-    if (obj.type === "rosa" && rosaImg.complete) {
-      ctx.save();
-      ctx.translate(obj.x + obj.size / 2, obj.y + obj.size / 2);
-      ctx.rotate(obj.rotation);
-      ctx.drawImage(rosaImg, -obj.size / 2, -obj.size / 2, obj.size, obj.size);
-      ctx.restore();
-    } else if (obj.type === "rosafals" && rosafalsaImg.complete) {
-      ctx.save();
-      ctx.translate(obj.x + obj.size / 2, obj.y + obj.size / 2);
-      ctx.rotate(obj.rotation);
-      ctx.drawImage(rosafalsaImg, -obj.size / 2, -obj.size / 2, obj.size, obj.size);
-      ctx.restore();
-    } else if (obj.type === "engano" && enganoImg.complete) {
-      ctx.save();
-      ctx.translate(obj.x + obj.size / 2, obj.y + obj.size / 2);
-      ctx.rotate(obj.rotation);
-      ctx.drawImage(enganoImg, -obj.size / 2, -obj.size / 2, obj.size, obj.size);
-      ctx.restore();
-    } else if (obj.type === "bomba" && bombaImg.complete) {
-      ctx.save();
-      ctx.translate(obj.x + obj.size / 2, obj.y + obj.size / 2);
-      ctx.rotate(obj.rotation);
-      ctx.drawImage(bombaImg, -obj.size / 2, -obj.size / 2, obj.size, obj.size);
-      ctx.restore();
+    obj.y += obj.vy; obj.x += obj.vx; obj.rotation += 0.05;
+    if (obj.img && obj.img.complete && obj.img.naturalWidth > 0) {
+      cx.save(); cx.translate(obj.x + obj.size/2, obj.y + obj.size/2);
+      cx.rotate(obj.rotation); cx.drawImage(obj.img, -obj.size/2, -obj.size/2, obj.size, obj.size); cx.restore();
     }
-    
-    // Si sale de pantalla (toca el fondo sin tocar)
-    if (obj.y > canvas.height) {
-      if (obj.type === "rosa") {
-        // Perdiste una rosa, resta vida
-        lives--;
-        const elapsed = Math.ceil((Date.now() - startTime) / 1000);
-        const remaining = Math.max(0, 60 - elapsed);
-        scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: ${remaining}s`;
-        if (lives <= 0) {
-          gameRunning = false;
-          endCatchGame();
-        }
+    if (obj.y > c.height) {
+      if ((obj.type === "gatito1" || obj.type === "gatito2") && gameRunning) {
+        lives--; updateScoreBoard();
+        if (lives <= 0) { gameRunning = false; stopLevel2(); endCatchGame(); }
       }
       return false;
     }
-    
     return true;
   });
 }
 
-// Detectar clicks/toques
+function updateScoreBoard() {
+  if (scoreBoard) scoreBoard.textContent = `🐱: ${score}/${targetCats} | ❤️: ${lives}`;
+}
+
 function handleTap(mx, my) {
-  if (!gameRunning) return;
-  
-  // Revisar de atrás hacia adelante (últimos objetos primero)
+  if (!gameRunning || level !== 2) return;
   for (let i = fallingObjects.length - 1; i >= 0; i--) {
     const obj = fallingObjects[i];
     if (!obj.active) continue;
-    
-    // Verificar si el tap está dentro del objeto
-    const dx = (mx - (obj.x + obj.size / 2));
-    const dy = (my - (obj.y + obj.size / 2));
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    
-    if (distance < obj.size / 2) {
-      const elapsed = Math.ceil((Date.now() - startTime) / 1000);
-      const remaining = Math.max(0, 60 - elapsed);
-      
-      if (obj.type === "rosa") {
-        score++;
-        obj.active = false;
-        scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: ${remaining}s`;
-        
-        // Si recolectaste 10 flores, ¡ganaste!
-        if (score >= targetFlowers) {
-          gameRunning = false;
-          endCatchGame();
-        }
-      } else if (obj.type === "rosafals") {
-        // Tocaste una rosa falsa, pierdes vida
-        lives--;
-        obj.active = false;
-        scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: ${remaining}s`;
-        if (lives <= 0) {
-          gameRunning = false;
-          endCatchGame();
-        }
-      } else if (obj.type === "engano") {
-        // Tocaste la otra flor falsa, pierdes vida
-        lives--;
-        obj.active = false;
-        scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: ${remaining}s`;
-        if (lives <= 0) {
-          gameRunning = false;
-          endCatchGame();
-        }
-      } else if (obj.type === "bomba") {
-        // Tocaste una bomba, pierdes vida
-        lives--;
-        obj.active = false;
-        scoreBoard.textContent = `🌸: ${score}/${targetFlowers} | ❤️: ${lives} | ⏱️: ${remaining}s`;
-        if (lives <= 0) {
-          gameRunning = false;
-          endCatchGame();
-        }
+    const dx = mx - (obj.x + obj.size/2), dy = my - (obj.y + obj.size/2);
+    if (Math.sqrt(dx*dx + dy*dy) < obj.size/2) {
+      if (obj.type === "gatito1" || obj.type === "gatito2") {
+        score++; obj.active = false; updateScoreBoard();
+        if (score >= targetCats) { gameRunning = false; stopLevel2(); endCatchGame(); }
+      } else if (obj.type === "enojado1" || obj.type === "enojado2") {
+        lives--; obj.active = false; showScratchAnimation(); updateScoreBoard();
+        if (lives <= 0) { gameRunning = false; stopLevel2(); endCatchGame(); }
+      } else {
+        lives--; obj.active = false; updateScoreBoard();
+        if (lives <= 0) { gameRunning = false; stopLevel2(); endCatchGame(); }
       }
       break;
     }
   }
 }
 
-canvas.addEventListener("click", e => {
-  if (!gameRunning) return;
+function handleCanvasTap(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  handleTap(mx, my);
-});
+  if (!rect.width || !rect.height) return;
+  handleTap((clientX - rect.left) * (canvas.width / rect.width), (clientY - rect.top) * (canvas.height / rect.height));
+}
 
+canvas.addEventListener("click", e => { if (level !== 2) return; handleCanvasTap(e.clientX, e.clientY); });
 canvas.addEventListener("touchstart", e => {
-  if (!gameRunning) return;
-  const rect = canvas.getBoundingClientRect();
-  const t = e.touches[0];
-  const mx = t.clientX - rect.left;
-  const my = t.clientY - rect.top;
-  handleTap(mx, my);
-  e.preventDefault();
+  if (level !== 2 || !gameRunning) return;
+  const t = e.touches[0]; handleCanvasTap(t.clientX, t.clientY); e.preventDefault();
 }, { passive: false });
 
 function endCatchGame() {
-  gameRunning = false;
-  // prevenir que el timeout global se dispare después (si quedó activo)
-  clearTimeout(gameTimer);
+  gameRunning = false; stopLevel2();
+  scratchOverlay.style.display = "none";
+  document.getElementById("level2Intro").classList.add("hidden");
   canvas.style.display = "none";
-  finalScreen.style.display = "flex";
+  finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
   finalScreen.style.background = "#fff0f5";
-  
   let result = "";
-  if (score >= targetFlowers) {
-    result = `<h1> ¡Ganaste! </h1>
-              <p>¡Asi es Doñita!</p>`;
-  } else if (score >= 7) {
-    result = `<h1>Un poco mas</h1>
-              <p>Casi lo logras Doña</p>`;
-  } else if (score >= 5) {
-    result = `<h1>Buen intento </h1>
-              <p>Si no gana le robo los lapices</p>`;
-  } else {
-    result = `<h1>Perdiste</h1>
-              <p>Nambe doña</p>`;
-  }
-  // elegir imagen final según si ganó o no
-  const finalImg = score >= targetFlowers ? kirbyFeliz : kirbyTriste;
-
-  finalScreen.innerHTML = `
-    ${result}
-    <img src="${finalImg}" width="180">
-    <p>🌸 Rosas recolectadas: ${score}/${targetFlowers}</p>
-    <p>❤️ Vidas restantes: ${lives}</p>
-    <button id="btnNextLevel">Siguiente nivel ➜</button>
-  `;
-
-  const btnNextLevel = document.getElementById("btnNextLevel");
-  btnNextLevel.addEventListener("click", startCardGame);
-  btnNextLevel.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    startCardGame();
-  }, { passive: false });
+  if (score >= targetCats) result = `<h1>🐱 ¡Ganaste! 🐱</h1><p>¡Salvaste a todos los gatitos!</p>`;
+  else if (score >= 7) result = `<h1>Casi lo logras</h1><p>Casi salvas a todos los gatitos</p>`;
+  else if (score >= 5) result = `<h1>Buen intento</h1><p>Los gatitos necesitan más ayuda</p>`;
+  else result = `<h1>Perdiste</h1><p>Los gatitos se perdieron 😿</p>`;
+  const finalImg = score >= targetCats ? kirbyFeliz : kirbyTriste;
+  finalScreen.innerHTML = `${result}<img src="${finalImg}" width="180"><p>🐱 Gatitos: ${score}/${targetCats}</p><p>❤️ Vidas: ${lives}</p><button id="btnNextLevel">Siguiente nivel ➜</button>`;
+  const btn = document.getElementById("btnNextLevel");
+  btn.addEventListener("click", startCardGame);
+  btn.addEventListener("touchstart", (e) => { e.preventDefault(); startCardGame(); }, { passive: false });
 }
 
-//nivel 3
-const images = [
-  "ella/tu.jpg",
-  "ella/tu2.jpg",
-  "ella/tu3.jpg",
-  "ella/tu4.jpg",
-  "ella/tu5.jpg",
-  "ella/tu6.jpg",
-  "ella/tu7.png",
-  "ella/tu8.jpg",
- 
-];
-
-let cards = [];
-let firstCard = null;
-let secondCard = null;
-let lockBoard = false;
-let matches = 0;
-// temporizador nivel 3
-let cardTimerInterval = null;
-let cardTimeRemaining = 60; // segundos
-let cardTimeout = null;
+// ===== NIVEL 3 =====
+const images = ["tu.jpg","tu2.jpg","tu3.jpg","tu4.jpg","tu5.jpg","tu6.jpg","tu7.png","tu8.jpg"];
+let cards = [], firstCard = null, secondCard = null, lockBoard = false, matches = 0;
+let cardTimerInterval = null, cardTimeRemaining = 60, cardTimeout = null;
 
 function startCardGame() {
-  level = 3;
-  // evitar que el temporizador del nivel 2 siga ejecutándose
-  clearTimeout(gameTimer);
-  // detener lógica del nivel 2
-  gameRunning = false;
-  // ocultar canvas y scoreBoard del nivel 2
+  level = 3; stopLevel2(); gameRunning = false;
   canvas.style.display = "none";
   if (scoreBoard) scoreBoard.style.display = "none";
-  // ocultar/limpiar ambos elementos finales por si alguno quedó visible
- const finalScreenDiv = document.getElementById("finalScreen");
-if (finalScreenDiv) {
-    finalScreenDiv.style.display = "none";
-    finalScreenDiv.innerHTML = "";
-}
-
-  // limpiar scoreBoard
-  if (scoreBoard) scoreBoard.textContent = "";
+  finalScreen.style.display = "none"; finalScreen.classList.add("hidden"); finalScreen.innerHTML = "";
+  document.getElementById("level2Intro").classList.add("hidden");
+  document.getElementById("pencilGame").classList.add("hidden");
   document.getElementById("cardGame").classList.remove("hidden");
   const board = document.getElementById("gameBoard");
   board.innerHTML = "";
-
-  matches = 0;
-  firstCard = null;
-  secondCard = null;
-  lockBoard = false;
-
-  cards = [...images, ...images]
-    .sort(() => 0.5 - Math.random());
-
+  matches = 0; firstCard = null; secondCard = null; lockBoard = false;
+  cards = [...images, ...images].sort(() => 0.5 - Math.random());
   cards.forEach(img => {
     const card = document.createElement("div");
     card.className = "card";
-    card.innerHTML = `
-      <div class="card-inner">
-        <div class="card-face card-front"><img src="${img}"></div>
-        <div class="card-face card-back"><img src="ella/fondo.png"></div>
-      </div>
-    `;
+    card.innerHTML = `<div class="card-inner"><div class="card-face card-front"><img src="${assetRoot}ella/${img}"></div><div class="card-face card-back"><img src="${assetRoot}ella/fondo.png"></div></div>`;
     card.addEventListener("click", () => flipCard(card, img));
     board.appendChild(card);
   });
-
-  // Crear/mostrar temporizador de 60s dentro de #cardGame
   const cardGameDiv = document.getElementById("cardGame");
   let timerEl = document.getElementById("cardTimer");
   if (!timerEl) {
-    timerEl = document.createElement("div");
-    timerEl.id = "cardTimer";
-    timerEl.style.color = "#fff";
-    timerEl.style.fontSize = "22px";
-    timerEl.style.marginBottom = "12px";
+    timerEl = document.createElement("div"); timerEl.id = "cardTimer";
+    timerEl.style.cssText = "color:#fff;font-size:22px;margin-bottom:12px;";
     cardGameDiv.insertBefore(timerEl, board);
   }
-  // reiniciar y arrancar
-  clearInterval(cardTimerInterval);
-  clearTimeout(cardTimeout);
-  cardTimeRemaining = 60;
-  timerEl.textContent = `⏱️ ${cardTimeRemaining}s`;
+  clearInterval(cardTimerInterval); clearTimeout(cardTimeout);
+  cardTimeRemaining = 60; timerEl.textContent = `⏱️ ${cardTimeRemaining}s`;
   cardTimerInterval = setInterval(() => {
-    cardTimeRemaining -= 1;
-    timerEl.textContent = `⏱️ ${cardTimeRemaining}s`;
-    if (cardTimeRemaining <= 0) {
-      clearInterval(cardTimerInterval);
-      endCardGame();
-    }
+    cardTimeRemaining--; timerEl.textContent = `⏱️ ${cardTimeRemaining}s`;
+    if (cardTimeRemaining <= 0) { clearInterval(cardTimerInterval); endCardGame(); }
   }, 1000);
-  cardTimeout = setTimeout(() => {
-    clearInterval(cardTimerInterval);
-    endCardGame();
-  }, 60 * 1000);
+  cardTimeout = setTimeout(() => { clearInterval(cardTimerInterval); endCardGame(); }, 60000);
 }
 
 function flipCard(card, img) {
   if (lockBoard || card === firstCard) return;
-
   card.classList.add("flip");
-
-  if (!firstCard) {
-    firstCard = card;
-    firstCard.dataset.img = img;
-    return;
-  }
-
-  secondCard = card;
-  secondCard.dataset.img = img;
-  lockBoard = true;
-
-  checkMatch();
+  if (!firstCard) { firstCard = card; firstCard.dataset.img = img; return; }
+  secondCard = card; secondCard.dataset.img = img; lockBoard = true; checkMatch();
 }
 
 function checkMatch() {
   if (firstCard.dataset.img === secondCard.dataset.img) {
-    matches++;
-    resetTurn();
-
-    if (matches === images.length) {
-      setTimeout(winCardGame, 500);
-    }
+    matches++; resetTurn();
+    if (matches === images.length) setTimeout(winCardGame, 500);
   } else {
-    setTimeout(() => {
-      firstCard.classList.remove("flip");
-      secondCard.classList.remove("flip");
-      resetTurn();
-    }, 800);
+    setTimeout(() => { firstCard.classList.remove("flip"); secondCard.classList.remove("flip"); resetTurn(); }, 800);
   }
 }
 
-function resetTurn() {
-  firstCard = null;
-  secondCard = null;
-  lockBoard = false;
-}
+function resetTurn() { firstCard = null; secondCard = null; lockBoard = false; }
 
 function winCardGame() {
-  clearInterval(cardTimerInterval);
-  clearTimeout(cardTimeout);
-
+  clearInterval(cardTimerInterval); clearTimeout(cardTimeout);
   document.getElementById("cardGame").classList.add("hidden");
-
-  finalScreen.style.display = "flex"; // 👈 Agregar esta línea
-  finalScreen.classList.remove("hidden");
-  finalScreen.innerHTML = `
-    <h1>💖 ¡Ganaste! 💖</h1>
-    <p>Encontraste todos los pares — jajjaa</p>
-    <img src="img/ganastes.png" width="180">
-    <button id="btnNextLevel">Siguiente nivel ➜</button>
-  `;
-
-  const btnNextLevel = document.getElementById("btnNextLevel"); // 👈 Crear variable
-  btnNextLevel.addEventListener("click", () => {
-    finalScreen.style.display = "none";
-    startBrickGame();
-  });
-  
-  // 👇 Agregar también listener para touch
-  btnNextLevel.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    finalScreen.style.display = "none";
-    startBrickGame();
-  }, { passive: false });
+  finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
+  finalScreen.innerHTML = `<h1>💖 ¡Ganaste! 💖</h1><p>Encontraste todos los pares</p><img src="${kirbyFeliz}" width="180"><button id="btnNextLevel">Siguiente nivel ➜</button>`;
+  const btn = document.getElementById("btnNextLevel");
+  btn.addEventListener("click", () => { finalScreen.style.display = "none"; finalScreen.classList.add("hidden"); startPencilGame(); });
+  btn.addEventListener("touchstart", (e) => { e.preventDefault(); finalScreen.style.display = "none"; finalScreen.classList.add("hidden"); startPencilGame(); }, { passive: false });
 }
 
 function endCardGame() {
-  // termina el nivel 3 por tiempo
-  lockBoard = true;
-  clearInterval(cardTimerInterval);
-  clearTimeout(cardTimeout);
+  lockBoard = true; clearInterval(cardTimerInterval); clearTimeout(cardTimeout);
   document.getElementById("cardGame").classList.add("hidden");
-  finalScreen.classList.remove("hidden");
-  const totalPairs = images.length;
-  const foundPairs = matches;
-  let msg = "";
-  let showNextBtn = false;
-  if (foundPairs === totalPairs) {
-    msg = `<h1>💖 ¡Ganaste! 💖</h1><p>Encontraste todos los pares</p>`;
-    showNextBtn = true;
-  } else if (foundPairs > 0) {
-    msg = `<h1>⏱️ Tiempo!</h1><p>Encontraste ${foundPairs}/${totalPairs} pares</p>`;
-    showNextBtn = true;
-  } else {
-    msg = `<h1>⏱️ Tiempo!</h1><p>No encontraste pares</p>`;
-  }
-  finalScreen.innerHTML = `
-    ${msg}
-    <button id="btnAction">${showNextBtn ? 'Siguiente nivel ➜' : 'Reiniciar'}</button>
-  `;
+  finalScreen.classList.remove("hidden"); finalScreen.style.display = "flex";
+  const totalPairs = images.length, foundPairs = matches;
+  let msg = "", showNext = false;
+  if (foundPairs === totalPairs) { msg = `<h1>💖 ¡Ganaste! 💖</h1><p>Encontraste todos los pares</p>`; showNext = true; }
+  else if (foundPairs > 0) { msg = `<h1>⏱️ Tiempo!</h1><p>Encontraste ${foundPairs}/${totalPairs} pares</p>`; showNext = true; }
+  else { msg = `<h1>⏱️ Tiempo!</h1><p>No encontraste pares</p>`; }
+  finalScreen.innerHTML = `${msg}<button id="btnAction">${showNext ? 'Siguiente nivel ➜' : 'Reiniciar'}</button>`;
+  const btn = document.getElementById("btnAction");
+  btn.addEventListener("click", () => { if (showNext) startPencilGame(); else startGame(); });
+  btn.addEventListener("touchstart", (e) => { e.preventDefault(); if (showNext) startPencilGame(); else startGame(); }, { passive: false });
+}
 
-  const btnAction = document.getElementById("btnAction");
-  btnAction.addEventListener("click", () => {
-    if (showNextBtn) {
-      startBrickGame();
-    } else {
-      startGame();
-    }
+// ===== NIVEL 4 - MISIÓN DE LÁPICES =====
+const profesorEspaldaImg = new Image(); profesorEspaldaImg.src = assetRoot + "img2/profesor_espalda.png";
+const profesorFrenteImg = new Image(); profesorFrenteImg.src = assetRoot + "img2/profesor_frente.png";
+const profesorAlertaImg = new Image(); profesorAlertaImg.src = assetRoot + "img2/profesor_alerta.png";
+
+const pCanvas = document.getElementById("gameCanvas");
+const pCtx = pCanvas.getContext("2d");
+const PW = pCanvas.width, PH = pCanvas.height;
+const GAME_TIME = 30, PLAYER_SPEED = 190;
+
+let pPlayer, pPencils, pCollected, pTimeLeft, pGameState, pLastTime, pElapsed;
+let teacherWatching, teacherClock, teacherCaught, pAnimId;
+
+const pKeys = {};
+const pTouchDirs = new Set();
+
+const pDesks = [
+  {x:95,y:265,w:135,h:65},{x:300,y:265,w:135,h:65},{x:505,y:265,w:135,h:65},{x:710,y:265,w:135,h:65},
+  {x:95,y:390,w:135,h:65},{x:300,y:390,w:135,h:65},{x:505,y:390,w:135,h:65},{x:710,y:390,w:135,h:65},
+  {x:95,y:500,w:135,h:55},{x:300,y:500,w:135,h:55},{x:505,y:500,w:135,h:55},{x:710,y:500,w:135,h:55},
+];
+
+const pPencilSpots = [
+  {x:155,y:250,color:"#ffcc45"},{x:365,y:250,color:"#ff72b6"},
+  {x:570,y:375,color:"#55d69a"},{x:775,y:375,color:"#66c9ff"},{x:365,y:485,color:"#ff795e"},
+];
+
+// HUD del nivel 4
+const pencilCountEl = document.getElementById("pencilCount");
+const pencilTimerEl = document.getElementById("pencilTimer");
+const teacherStatusEl = document.getElementById("teacherStatus");
+const hintEl = document.getElementById("hint");
+
+function startPencilGame() {
+  level = 4; gameRunning = false;
+  canvas.style.display = "none";
+  document.getElementById("level2Intro").classList.add("hidden");
+  if (scoreBoard) scoreBoard.style.display = "none";
+  finalScreen.style.display = "none"; finalScreen.classList.add("hidden");
+  document.getElementById("cardGame").classList.add("hidden");
+  document.getElementById("pencilGame").classList.remove("hidden");
+
+  pPlayer = { x: 480, y: 555, radius: 13, direction: "up" };
+  pPencils = pPencilSpots.map((p, i) => ({ ...p, collected: false, number: i }));
+  pCollected = 0; pTimeLeft = GAME_TIME; pElapsed = 0;
+  teacherClock = 0; teacherWatching = false; teacherCaught = false;
+  pGameState = "playing"; pLastTime = performance.now();
+
+  if (pencilCountEl) pencilCountEl.textContent = "0 / 5";
+  if (pencilTimerEl) pencilTimerEl.textContent = GAME_TIME;
+  if (teacherStatusEl) { teacherStatusEl.textContent = "Escribiendo"; teacherStatusEl.style.color = "#fff2ae"; }
+  if (hintEl) hintEl.textContent = "¡Recoge los cinco lápices y evita que el profesor te vea!";
+
+  for (const k in pKeys) pKeys[k] = false;
+  pTouchDirs.clear();
+
+  if (pAnimId) cancelAnimationFrame(pAnimId);
+  pAnimId = requestAnimationFrame(pGameLoop);
+}
+
+function pIsPressed(dir) { return Boolean(pKeys[dir]) || pTouchDirs.has(dir); }
+
+function pCollidesDesk(x, y) {
+  const r = pPlayer.radius;
+  return pDesks.some(d => {
+    const cx = Math.max(d.x, Math.min(x, d.x+d.w)), cy = Math.max(d.y, Math.min(y, d.y+d.h));
+    const dx = x-cx, dy = y-cy; return dx*dx+dy*dy < r*r;
   });
-  btnAction.addEventListener("touchstart", (e) => {
-    e.preventDefault();
-    if (showNextBtn) {
-      startBrickGame();
-    } else {
-      startGame();
+}
+
+function pMovePlayer(dx, dy) {
+  const nx = Math.max(pPlayer.radius+5, Math.min(PW-pPlayer.radius-5, pPlayer.x+dx));
+  const ny = Math.max(215, Math.min(PH-pPlayer.radius-8, pPlayer.y+dy));
+  if (!pCollidesDesk(nx, pPlayer.y)) pPlayer.x = nx;
+  if (!pCollidesDesk(pPlayer.x, ny)) pPlayer.y = ny;
+}
+
+function pUpdatePlayer(dt) {
+  let dx=0, dy=0;
+  if (pIsPressed("left")) dx--; if (pIsPressed("right")) dx++;
+  if (pIsPressed("up")) dy--; if (pIsPressed("down")) dy++;
+  if (dx!==0 || dy!==0) {
+    const len = Math.hypot(dx,dy); dx/=len; dy/=len;
+    if (Math.abs(dx)>Math.abs(dy)) pPlayer.direction = dx>0?"right":"left";
+    else pPlayer.direction = dy>0?"down":"up";
+    pMovePlayer(dx*PLAYER_SPEED*dt, dy*PLAYER_SPEED*dt);
+  }
+}
+
+function pCanTeacherSee() {
+  const tx=480, ty=160;
+  const dx=pPlayer.x-tx, dy=pPlayer.y-ty;
+  const dist = Math.hypot(dx,dy);
+  if (dist>500 || dy<-20) return false;
+  const hw = 280+dy*0.4;
+  if (Math.abs(dx)>hw) return false;
+  const steps = Math.ceil(dist/8);
+  for (let i=1; i<steps; i++) {
+    const t=i/steps, x=tx+dx*t, y=ty+dy*t;
+    if (pDesks.some(d => x>d.x+10 && x<d.x+d.w-10 && y>d.y+10 && y<d.y+d.h-10)) return false;
+  }
+  return true;
+}
+
+function pUpdateTeacher(dt) {
+  teacherClock += dt;
+  teacherWatching = (teacherClock % 5) >= 3;
+  if (teacherStatusEl) {
+    if (teacherWatching) { teacherStatusEl.textContent = "¡VIGILANDO!"; teacherStatusEl.style.color = "#ff8585"; if (hintEl) hintEl.textContent = "¡El profesor está mirando! Escóndete detrás de los pupitres."; }
+    else { teacherStatusEl.textContent = "Escribiendo"; teacherStatusEl.style.color = "#fff2ae"; if (hintEl) hintEl.textContent = "¡Aprovecha! El profesor está escribiendo en la pizarra."; }
+  }
+  if (teacherWatching && pCanTeacherSee()) { teacherCaught = true; endPencilGame(false, "¡El profesor te descubrió!"); }
+}
+
+function pUpdateCollect() {
+  for (const p of pPencils) {
+    if (p.collected) continue;
+    if (Math.hypot(pPlayer.x-p.x, pPlayer.y-p.y) < 25) {
+      p.collected = true; pCollected++;
+      if (pencilCountEl) pencilCountEl.textContent = `${pCollected} / 5`;
+      if (pCollected === 5) endPencilGame(true, "¡Conseguiste todos los lápices sin que te atraparan!");
     }
-  }, { passive: false });
+  }
+}
+
+function pUpdate(dt) {
+  if (pGameState !== "playing") return;
+  pElapsed += dt; pTimeLeft = Math.max(0, GAME_TIME - pElapsed);
+  if (pencilTimerEl) { pencilTimerEl.textContent = Math.ceil(pTimeLeft); pencilTimerEl.style.color = pTimeLeft<=5?"#ff5555":"#ffb0d2"; }
+  pUpdatePlayer(dt); pUpdateCollect(); pUpdateTeacher(dt);
+  if (pGameState === "playing" && pTimeLeft <= 0) endPencilGame(false, "Se acabó el tiempo. ¡El profesor se quedó con los lápices!");
+}
+
+function drawPClassroom() {
+  pCtx.fillStyle="#e6d18b"; pCtx.fillRect(0,0,PW,205);
+  pCtx.fillStyle="#c39b68"; pCtx.fillRect(0,198,PW,12);
+  pCtx.fillStyle="#79513d"; pCtx.fillRect(180,18,600,128);
+  pCtx.fillStyle="#4f6748"; pCtx.fillRect(190,28,580,108);
+  pCtx.fillStyle="#f4e8ba"; pCtx.font="18px monospace";
+  pCtx.fillText("MATEMÁTICAS",215,57); pCtx.fillText("2 + 2 = 4",235,91); pCtx.fillText("¡A estudiar!",600,115);
+  pCtx.fillStyle="#a77c55"; pCtx.fillRect(170,145,620,12);
+  pCtx.fillStyle="#86553b"; pCtx.fillRect(835,25,95,173);
+  pCtx.fillStyle="#b87b50"; pCtx.fillRect(845,35,75,153);
+  pCtx.fillStyle="#f4d68b"; pCtx.fillRect(902,105,7,7);
+  pCtx.fillStyle="#d8a66e"; pCtx.fillRect(0,210,PW,PH-210);
+  for (let y=210; y<PH; y+=28) {
+    pCtx.fillStyle="#b87f52"; pCtx.fillRect(0,y,PW,3);
+    const off=(Math.floor(y/28)%2)*65;
+    for (let x=-off; x<PW; x+=130) pCtx.fillRect(x,y,3,28);
+  }
+  pCtx.fillStyle="#79513d"; pCtx.fillRect(18,25,100,110);
+  pCtx.fillStyle="#a5d9ef"; pCtx.fillRect(25,32,86,96);
+  pCtx.fillStyle="#f4df9b"; pCtx.fillRect(65,32,5,96); pCtx.fillRect(25,77,86,5);
+  pCtx.fillStyle="#80523d"; pCtx.fillRect(790,30,35,35);
+  pCtx.fillStyle="#fff3ce"; pCtx.fillRect(795,35,25,25);
+  pCtx.fillStyle="#4c3c38"; pCtx.fillRect(807,39,2,11); pCtx.fillRect(807,48,8,2);
+}
+
+function drawPDesks() {
+  for (const d of pDesks) {
+    pCtx.fillStyle="#62453d"; pCtx.fillRect(d.x+8,d.y+d.h-3,7,13); pCtx.fillRect(d.x+d.w-15,d.y+d.h-3,7,13);
+    pCtx.fillStyle="#795744"; pCtx.fillRect(d.x+3,d.y+5,d.w,d.h);
+    pCtx.fillStyle="#f4c48b"; pCtx.fillRect(d.x,d.y,d.w,d.h-7);
+    pCtx.fillStyle="#b57b51"; pCtx.fillRect(d.x,d.y,d.w,4); pCtx.fillRect(d.x,d.y,4,d.h-7); pCtx.fillRect(d.x+d.w-4,d.y,4,d.h-7);
+    pCtx.fillStyle="#f9f0d6"; pCtx.fillRect(d.x+16,d.y+12,22,16);
+    pCtx.fillStyle="#b5a4cd"; pCtx.fillRect(d.x+19,d.y+16,15,2); pCtx.fillRect(d.x+19,d.y+21,12,2);
+  }
+}
+
+function drawPPencils() {
+  pPencils.forEach((p, i) => {
+    if (p.collected) return;
+    const bob = Math.sin(pElapsed*5+i)*2;
+    pCtx.save(); pCtx.translate(p.x, p.y+bob); pCtx.rotate(-0.65);
+    pCtx.fillStyle="#fff4a0"; pCtx.fillRect(-3,-15,10,30);
+    pCtx.fillStyle=p.color; pCtx.fillRect(-4,-13,8,26);
+    pCtx.fillStyle="#594344"; pCtx.fillRect(-5,-13,2,26); pCtx.fillRect(4,-13,2,26);
+    pCtx.fillStyle="#e6c49a"; pCtx.fillRect(-3,-17,6,4);
+    pCtx.fillStyle="#443537"; pCtx.fillRect(-1,-19,2,3);
+    pCtx.fillStyle="#ffb6d0"; pCtx.fillRect(-4,13,8,4);
+    pCtx.restore();
+  });
+}
+
+function drawPTeacher() {
+  pCtx.fillStyle="#76503d"; pCtx.fillRect(340,155,280,58);
+  pCtx.fillStyle="#edb77d"; pCtx.fillRect(330,145,300,25);
+  pCtx.fillStyle="#f7d3a0"; pCtx.fillRect(340,150,280,15);
+
+  const imgP = teacherCaught ? profesorAlertaImg : (teacherWatching ? profesorFrenteImg : profesorEspaldaImg);
+  const pw=150, ph=150;
+  pCtx.save(); pCtx.beginPath(); pCtx.rect(480-pw/2,55,pw,95); pCtx.clip();
+  if (imgP.complete && imgP.naturalWidth > 0) pCtx.drawImage(imgP, 480-pw/2, 55, pw, ph);
+  pCtx.restore();
+
+  if (teacherWatching) {
+    pCtx.save(); pCtx.globalAlpha=0.22; pCtx.fillStyle="#00cfff";
+    pCtx.beginPath(); pCtx.moveTo(480,155);
+    pCtx.quadraticCurveTo(150,180,0,350); pCtx.lineTo(0,600);
+    pCtx.lineTo(960,600); pCtx.lineTo(960,350);
+    pCtx.quadraticCurveTo(810,180,480,155); pCtx.closePath(); pCtx.fill(); pCtx.restore();
+    pCtx.fillStyle="#ff5555"; pCtx.font="bold 13px monospace"; pCtx.textAlign="center";
+    pCtx.fillText("¡VIGILANDO!",480,225); pCtx.textAlign="left";
+  }
+}
+
+function drawPKirby() {
+  const x=Math.round(pPlayer.x), y=Math.round(pPlayer.y);
+  pCtx.fillStyle="rgba(60,35,45,0.28)"; pCtx.fillRect(x-15,y+10,30,6);
+  pCtx.fillStyle="#d84d83"; pCtx.fillRect(x-16,y+5,12,9); pCtx.fillRect(x+4,y+5,12,9);
+  pCtx.fillStyle="#ff8fc5";
+  pCtx.fillRect(x-17,y-10,34,25); pCtx.fillRect(x-12,y-16,24,34);
+  pCtx.fillRect(x-20,y-5,8,17); pCtx.fillRect(x+12,y-5,8,17);
+  pCtx.fillStyle="#ffd2e7"; pCtx.fillRect(x-10,y-11,7,5); pCtx.fillRect(x-15,y-4,4,5);
+  pCtx.fillStyle="#252442"; pCtx.fillRect(x-8,y-6,4,10); pCtx.fillRect(x+4,y-6,4,10);
+  pCtx.fillStyle="#ffffff"; pCtx.fillRect(x-7,y-5,2,3); pCtx.fillRect(x+5,y-5,2,3);
+  pCtx.fillStyle="#ed578d"; pCtx.fillRect(x-13,y+3,5,3); pCtx.fillRect(x+9,y+3,5,3);
+  if (pPlayer.direction==="up") { pCtx.fillStyle="#fff2a8"; pCtx.fillRect(x-3,y-19,6,3); }
+}
+
+function drawPGame() {
+  drawPClassroom();
+  if (teacherWatching) {
+    pCtx.save(); pCtx.globalAlpha=0.15; pCtx.fillStyle="#00cfff";
+    pCtx.beginPath(); pCtx.moveTo(480,165); pCtx.lineTo(300,555); pCtx.lineTo(660,555); pCtx.closePath(); pCtx.fill(); pCtx.restore();
+  }
+  drawPDesks(); pPencils.forEach(drawPPencils); drawPTeacher(); drawPKirby();
+}
+
+function pGameLoop(now) {
+  if (pGameState !== "playing") return;
+  const dt = Math.min((now-pLastTime)/1000, 0.05); pLastTime = now;
+  pUpdate(dt); drawPGame();
+  pAnimId = requestAnimationFrame(pGameLoop);
+}
+
+// Controles teclado nivel 4
+const dirMap = {ArrowUp:"up",w:"up",W:"up",ArrowDown:"down",s:"down",S:"down",ArrowLeft:"left",a:"left",A:"left",ArrowRight:"right",d:"right",D:"right"};
+window.addEventListener("keydown", e => {
+  if (level !== 4) return;
+  const dir = dirMap[e.key]; if (dir) { e.preventDefault(); pKeys[dir]=true; }
+});
+window.addEventListener("keyup", e => {
+  if (level !== 4) return;
+  const dir = dirMap[e.key]; if (dir) pKeys[dir]=false;
+});
+window.addEventListener("blur", () => { for (const k in pKeys) pKeys[k]=false; pTouchDirs.clear(); });
+
+// D-pad táctil nivel 4
+document.querySelectorAll(".direction").forEach(btn => {
+  const dir = btn.dataset.dir;
+  btn.addEventListener("pointerdown", e => { e.preventDefault(); btn.setPointerCapture(e.pointerId); pTouchDirs.add(dir); btn.classList.add("pressed"); });
+  const release = e => { e.preventDefault(); pTouchDirs.delete(dir); btn.classList.remove("pressed"); };
+  btn.addEventListener("pointerup", release); btn.addEventListener("pointercancel", release);
+  btn.addEventListener("lostpointercapture", () => { pTouchDirs.delete(dir); btn.classList.remove("pressed"); });
+});
+
+function endPencilGame(won, text) {
+  if (pGameState !== "playing") return;
+  pGameState = won ? "won" : "lost";
+  if (pAnimId) { cancelAnimationFrame(pAnimId); pAnimId = null; }
+  document.getElementById("pencilGame").classList.add("hidden");
+  finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
+  finalScreen.style.background = won ? "#fff0f5" : "#ffe4e1";
+  const finalImg = won ? kirbyFeliz : kirbyTriste;
+  finalScreen.innerHTML = `
+    ${won ? `<h1>✏️ ¡Misión cumplida! ✏️</h1>` : `<h1>😱 ¡Te atraparon!</h1>`}
+    <img src="${finalImg}" width="180">
+    <p>${text}</p>
+    <p>✏️ Lápices: ${pCollected}/5</p>
+    <button id="btnRestart">Volver al inicio</button>
+  `;
+  const btnR = document.getElementById("btnRestart");
+  btnR.addEventListener("click", () => { finalScreen.style.display="none"; finalScreen.classList.add("hidden"); startScreen.style.display="flex"; });
+  btnR.addEventListener("touchstart", (e) => { e.preventDefault(); finalScreen.style.display="none"; finalScreen.classList.add("hidden"); startScreen.style.display="flex"; }, { passive: false });
 }
 
 });
-
-// ===== NIVEL 4 - BREAKOUT GAME =====
-let brickGameState = {
-  ballRadius: 8,
-  x: 0,
-  y: 0,
-  dx: 20,  // 👈 Cambia esto, 20 es demasiado rápido
-  dy: -20, // 👈 Cambia esto también
-  paddleHeight: 10,
-  paddleWidth: 75,
-  paddleX: 0,
-  rightPressed: false,
-  leftPressed: false,
-  score: 0,
-  gameRunning: false,
-  bricks: [],
-  brickRowCount: 5,
-  brickColumnCount: 7,
-  brickWidth: 55,
-  brickHeight: 20,
-  brickPadding: 10,
-  brickOffsetTop: 30,
-  brickOffsetLeft: 30,
-  brickAnimationId: null,
-  keydownHandler: null,
-  keyupHandler: null,
-  kirbyBallImg: null,
-  ballRotation: 0  // 👈 Agregar rotación aquí
-};
-
-function startBrickGame() {
-  const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
-  const finalScreen = document.getElementById("finalScreen");
-
-  brickGameState.gameRunning = true;
-
-  if (!brickGameState.kirbyBallImg) {
-    brickGameState.kirbyBallImg = new Image();
-    brickGameState.kirbyBallImg.src = "img/pelota.png";
-  }
-
-  finalScreen.style.display = "none";
-  canvas.style.display = "block";
-
-  if (document.getElementById("scoreBoard")) {
-    document.getElementById("scoreBoard").style.display = "none";
-  }
-  document.getElementById("cardGame").classList.add("hidden");
-
-  // Reiniciar estado
-  brickGameState.score = 0;
-  brickGameState.ballRadius = 8;
-  brickGameState.ballRotation = 0; // 👈 Reiniciar rotación
-  brickGameState.x = canvas.width / 2;
-  brickGameState.y = canvas.height - 30;
-  brickGameState.dx = 2;
-  brickGameState.dy = -2;
-  brickGameState.paddleX = (canvas.width - brickGameState.paddleWidth) / 2;
-  brickGameState.rightPressed = false;
-  brickGameState.leftPressed = false;
-  brickGameState.bricks = [];
-
-  // Ajuste automático del ancho de ladrillos
-  const totalPadding = (brickGameState.brickColumnCount - 1) * brickGameState.brickPadding;
-  brickGameState.brickWidth =
-    (canvas.width - brickGameState.brickOffsetLeft * 2 - totalPadding) /
-    brickGameState.brickColumnCount;
-
-  // Crear ladrillos
-  for (let c = 0; c < brickGameState.brickColumnCount; c++) {
-    brickGameState.bricks[c] = [];
-    for (let r = 0; r < brickGameState.brickRowCount; r++) {
-      brickGameState.bricks[c][r] = { x: 0, y: 0, status: 1 };
-    }
-  }
-
-  // Controles
-  brickGameState.keydownHandler = (e) => {
-    if (e.key === "Right" || e.key === "ArrowRight") brickGameState.rightPressed = true;
-    if (e.key === "Left" || e.key === "ArrowLeft") brickGameState.leftPressed = true;
-  };
-
-  brickGameState.keyupHandler = (e) => {
-    if (e.key === "Right" || e.key === "ArrowRight") brickGameState.rightPressed = false;
-    if (e.key === "Left" || e.key === "ArrowLeft") brickGameState.leftPressed = false;
-  };
-
-  document.addEventListener("keydown", brickGameState.keydownHandler);
-  document.addEventListener("keyup", brickGameState.keyupHandler);
-
-  // Touch
-  canvas.addEventListener("touchmove", (e) => {
-    if (!brickGameState.gameRunning) return;
-    const rect = canvas.getBoundingClientRect();
-    const touchX = e.touches[0].clientX - rect.left;
-    brickGameState.paddleX = touchX - brickGameState.paddleWidth / 2;
-    if (brickGameState.paddleX < 0) brickGameState.paddleX = 0;
-    if (brickGameState.paddleX + brickGameState.paddleWidth > canvas.width) {
-      brickGameState.paddleX = canvas.width - brickGameState.paddleWidth;
-    }
-    e.preventDefault();
-  }, { passive: false });
-
-  brickGameLoop(canvas, ctx, finalScreen);
-}
-
-function brickGameLoop(canvas, ctx, finalScreen) {
-  if (!brickGameState.gameRunning) return;
-
-  ctx.fillStyle = "#1a1a2e";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  // Dibujar ladrillos
-  for (let c = 0; c < brickGameState.brickColumnCount; c++) {
-    for (let r = 0; r < brickGameState.brickRowCount; r++) {
-      if (brickGameState.bricks[c][r].status === 1) {
-        const brickX = c * (brickGameState.brickWidth + brickGameState.brickPadding) + brickGameState.brickOffsetLeft;
-        const brickY = r * (brickGameState.brickHeight + brickGameState.brickPadding) + brickGameState.brickOffsetTop;
-        brickGameState.bricks[c][r].x = brickX;
-        brickGameState.bricks[c][r].y = brickY;
-
-        ctx.beginPath();
-        ctx.rect(brickX, brickY, brickGameState.brickWidth, brickGameState.brickHeight);
-        ctx.fillStyle = "#ff0066";
-        ctx.fill();
-        ctx.closePath();
-      }
-    }
-  }
-
-  // Pelota con rotación
-  if (brickGameState.kirbyBallImg && brickGameState.kirbyBallImg.complete) {
-    const size = brickGameState.ballRadius * 4;
-    
-    ctx.save();
-    ctx.translate(brickGameState.x, brickGameState.y);
-    ctx.rotate(brickGameState.ballRotation);
-    ctx.drawImage(
-      brickGameState.kirbyBallImg,
-      -size / 2,
-      -size / 2,
-      size,
-      size
-    );
-    ctx.restore();
-    
-    // Incrementar rotación
-    brickGameState.ballRotation += 0.1;
-  } else {
-    // Si la imagen no carga, usa el círculo normal
-    ctx.beginPath();
-    ctx.arc(brickGameState.x, brickGameState.y, brickGameState.ballRadius, 0, Math.PI * 2);
-    ctx.fillStyle = "#00ffcc";
-    ctx.fill();
-    ctx.closePath();
-  }
-
-  // Paleta
-  ctx.beginPath();
-  ctx.rect(brickGameState.paddleX, canvas.height - brickGameState.paddleHeight, brickGameState.paddleWidth, brickGameState.paddleHeight);
-  ctx.fillStyle = "#ffffff";
-  ctx.fill();
-  ctx.closePath();
-
-  // Puntaje
-  ctx.font = "16px Arial";
-  ctx.fillStyle = "#fff";
-  ctx.fillText("Puntos: " + brickGameState.score, 8, 20);
-
-  // Colisiones con ladrillos
-  for (let c = 0; c < brickGameState.brickColumnCount; c++) {
-    for (let r = 0; r < brickGameState.brickRowCount; r++) {
-      const b = brickGameState.bricks[c][r];
-      if (b.status === 1) {
-        if (
-          brickGameState.x > b.x &&
-          brickGameState.x < b.x + brickGameState.brickWidth &&
-          brickGameState.y > b.y &&
-          brickGameState.y < b.y + brickGameState.brickHeight
-        ) {
-          brickGameState.dy = -brickGameState.dy;
-          b.status = 0;
-          brickGameState.score++;
-
-          if (brickGameState.score === brickGameState.brickRowCount * brickGameState.brickColumnCount) {
-            endBrickGame(true, canvas, finalScreen);
-            return;
-          }
-        }
-      }
-    }
-  }
-
-  // Rebotes
-  if (brickGameState.x + brickGameState.dx > canvas.width - brickGameState.ballRadius || brickGameState.x + brickGameState.dx < brickGameState.ballRadius) {
-    brickGameState.dx = -brickGameState.dx;
-  }
-  if (brickGameState.y + brickGameState.dy < brickGameState.ballRadius) {
-    brickGameState.dy = -brickGameState.dy;
-  } else if (brickGameState.y + brickGameState.dy > canvas.height - brickGameState.ballRadius) {
-    if (brickGameState.x > brickGameState.paddleX && brickGameState.x < brickGameState.paddleX + brickGameState.paddleWidth) {
-      brickGameState.dy = -brickGameState.dy;
-    } else {
-      endBrickGame(false, canvas, finalScreen);
-      return;
-    }
-  }
-
-  // Movimiento paleta
-  if (brickGameState.rightPressed && brickGameState.paddleX < canvas.width - brickGameState.paddleWidth) {
-    brickGameState.paddleX += 5;
-  } else if (brickGameState.leftPressed && brickGameState.paddleX > 0) {
-    brickGameState.paddleX -= 5;
-  }
-
-  // Actualizar pelota
-  brickGameState.x += brickGameState.dx;
-  brickGameState.y += brickGameState.dy;
-
-  brickGameState.brickAnimationId = requestAnimationFrame(() => brickGameLoop(canvas, ctx, finalScreen));
-}
-
-function endBrickGame(won, canvas, finalScreen) {
-  brickGameState.gameRunning = false;
-
-  if (brickGameState.brickAnimationId) {
-    cancelAnimationFrame(brickGameState.brickAnimationId);
-    brickGameState.brickAnimationId = null;
-  }
-
-  document.removeEventListener("keydown", brickGameState.keydownHandler);
-  document.removeEventListener("keyup", brickGameState.keyupHandler);
-
-  canvas.style.display = "none";
-  finalScreen.style.display = "flex";
-  finalScreen.style.background = won ? "#fff0f5" : "#ffe4e1";
-
-  finalScreen.innerHTML = won
-    ? `<h1>🎉 ¡GANASTE! 🎉</h1>
-       <img src="img/ganastes.png" width="180">
-       <p>¡Rompiste todos los bloques! 💥</p>
-       <button id="btnRestart">Reiniciar</button>`
-    : `<h1>💀 GAME OVER 💀</h1>
-       <img src="img/perdio.png" width="180">
-       <p>Puntos: ${brickGameState.score}/${brickGameState.brickRowCount * brickGameState.brickColumnCount}</p>
-       <button id="btnRestart">Reiniciar</button>`;
-
-  document.getElementById("btnRestart").addEventListener("click", () => {
-    finalScreen.style.display = "none";
-    document.getElementById("start").style.display = "flex";
-  });
-}

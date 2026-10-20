@@ -1,28 +1,75 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Flappy Kirby 🌸</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <link rel="stylesheet" href="main.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirby: La misión de los lápices</title>
+    <link rel="stylesheet" href="main.css">
 </head>
 <body>
+    <main class="game-container">
+        <header class="topbar">
+            <div class="logo">⭐ KIRBY ⭐</div>
+            <h1>La misión de los lápices</h1>
+        </header>
 
-<div id="start">
-  <h1>🌸 Flappy Kirby 🌸</h1>
-  <button id="btnStart">Empezar</button>
-  <p>Toca la pantalla para volar</p>
-</div>
+        <section id="start" class="screen start-screen">
+            <h2>¡A jugar con Kirby!</h2>
+            <p>Completa los cuatro niveles para llegar al final.</p>
+            <button id="btnStart" type="button">Comenzar aventura</button>
+        </section>
 
-<canvas id="game" width="360" height="640"></canvas>
+        <section class="game-area">
+            <section id="level2Intro" class="level2-intro hidden">
+                <h2>🐱 Rescata los gatos blancos 🐱</h2>
+            </section>
+            <canvas id="game" width="360" height="640" aria-label="Juego de Kirby"></canvas>
 
-<div id="cardGame" class="hidden">
-  <h2>🃏 Encuentra los pares</h2>
-  <div id="gameBoard"></div>
-</div>
+            <section id="cardGame" class="card-game hidden">
+                <h2>Encuentra las parejas</h2>
+                <div id="gameBoard" class="game-board"></div>
+            </section>
 
-<div id="finalScreen" class="hidden"></div>
+            <section id="pencilGame" class="pencil-game hidden">
+                <section class="hud">
+                    <div class="stat">
+                        <span>✏️ LÁPICES</span>
+                        <strong id="pencilCount">0 / 5</strong>
+                    </div>
+                    <div class="stat timer-box">
+                        <span>⏰ TIEMPO</span>
+                        <strong id="pencilTimer">30</strong>
+                    </div>
+                    <div class="stat teacher-box">
+                        <span>👨‍🏫 PROFESOR</span>
+                        <strong id="teacherStatus">Escribiendo</strong>
+                    </div>
+                </section>
 
-<script src="main.js"></script>
+                <div class="canvas-wrapper">
+                    <canvas id="gameCanvas" width="960" height="600"
+                        aria-label="Kirby recoge lápices y evita al profesor"></canvas>
+                </div>
+                <p id="hint" class="hint">¡Recoge los cinco lápices y evita que Anael te vea!</p>
+
+                <section class="controls">
+                    <div class="keyboard-help">
+                    </div>
+                    <div class="touch-controls">
+                        <strong>📱 Controles táctiles</strong>
+                        <div class="dpad">
+                            <button class="direction up" data-dir="up" aria-label="Mover arriba">▲</button>
+                            <button class="direction left" data-dir="left" aria-label="Mover izquierda">◀</button>
+                            <button class="direction down" data-dir="down" aria-label="Mover abajo">▼</button>
+                            <button class="direction right" data-dir="right" aria-label="Mover derecha">▶</button>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </section>
+<section id="finalScreen" class="screen final-screen" aria-live="polite"></section>
+        
+    </main>
+    <script src="main.js"></script>
 </body>
 </html>
