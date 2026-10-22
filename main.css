@@ -405,17 +405,26 @@ footer {
 }
 
 .final-screen {
-    display: none; /* 👈 agregar esto */
+    display: none;
     position: fixed;
     inset: 0;
     z-index: 1001;
     flex-direction: column;
+    justify-content: center; /* 👈 centra vertical */
+    align-items: center;     /* 👈 centra horizontal */
     gap: 12px;
     overflow-y: auto;
     padding: 24px;
     text-align: center;
     color: #292343;
     background: #fff0f5;
+}
+
+.final-screen img {
+    display: block;
+    max-width: min(180px, 45vw);
+    height: auto;
+    margin: 0 auto;
 }
 
 .final-screen img {
