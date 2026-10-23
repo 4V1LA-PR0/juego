@@ -18,16 +18,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const AUDIOS = [
     RAIZ + "audios/perdio1.mp3",
     RAIZ + "audios/perdio2.mp3",
-    RAIZ + "audios/perdio3.mp3",
-    RAIZ + "audios/perdio4.mp3",
-    RAIZ + "audios/perdio5.mp3"
   ];
+
+  // Tiempo (ms) que se ignoran los toques justo después de perder,
+  // para que los toques del juego no activen a Kirby sin querer
+  const ESPERA_MS = 800;
 
   const finalScreen = document.getElementById("finalScreen");
   if (!finalScreen) return;
 
-  let perdidas = 0;      // cuántas veces ha perdido
-  let audioActual = null;
+  let perdidas = 0; // cuántas veces ha perdido
 
   // Precargar la imagen para que cambie al instante
   new Image().src = IMG_BOCA;
@@ -37,6 +37,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const audioSrc = AUDIOS[perdidas % AUDIOS.length];
     perdidas++;
 
+    // El audio se carga desde que aparece la pantalla, así suena al tocar
+    const audio = new Audio(audioSrc);
+    audio.preload = "auto";
+
+    const listoDesde = Date.now() + ESPERA_MS;
+    let sonando = false;
+
     img.dataset.listo = "1";
     img.style.cursor = "pointer";
 
@@ -44,14 +51,27 @@ document.addEventListener("DOMContentLoaded", () => {
     aviso.textContent = "👆 Toca a Kirby";
     img.insertAdjacentElement("afterend", aviso);
 
+    function volverNormal() {
+      sonando = false;
+      img.src = imagenNormal;
+    }
+
+    audio.addEventListener("ended", volverNormal);
+
+    // Si el audio no existe o tiene otro nombre, avisa en pantalla
+    audio.addEventListener("error", () => {
+      volverNormal();
+      aviso.textContent = "⚠️ No encontré el audio: " + audioSrc;
+    });
+
     img.addEventListener("click", () => {
-      if (audioActual) audioActual.pause();
+      if (Date.now() < listoDesde) return; // toque del juego, no cuenta
+      if (sonando) return;                 // ya está sonando, no lo reinicia
 
+      sonando = true;
       img.src = IMG_BOCA;
-
-      audioActual = new Audio(audioSrc);
-      audioActual.addEventListener("ended", () => { img.src = imagenNormal; });
-      audioActual.play().catch(() => { img.src = imagenNormal; });
+      audio.currentTime = 0;
+      audio.play().catch(() => { volverNormal(); });
     });
   }
 
