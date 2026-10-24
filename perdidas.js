@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Carpeta donde están tus imágenes y audios.
   // Si todo está junto a tu index.html, déjala vacía: ""
-  const RAIZ = "../juego/";
+ const RAIZ = "";
 
   // Imagen que sale al perder (la que ya usas) y la nueva con la boca abierta
   const IMG_PIERDE = "perdio.png";
@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const AUDIOS = [
     RAIZ + "audios/perdio1.mp3",
     RAIZ + "audios/perdio2.mp3",
+    RAIZ + "audios/perdio3.mp3",
+    RAIZ + "audios/perdio4.mp3",
   ];
 
   // Tiempo (ms) que se ignoran los toques justo después de perder,

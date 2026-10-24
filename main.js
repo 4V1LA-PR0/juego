@@ -26,7 +26,7 @@ const btnStart = document.getElementById("btnStart");
 let gameRunning = false;
 let level = 1;
 
-const assetRoot = "../juego/";
+const assetRoot = "";
 const kirby = { x: 70, y: 70, w: 70, h: 70, dy: 0 };
 const kirbyBaja = new Image(); kirbyBaja.src = assetRoot + "img/kirby_baja.png";
 const kirbySube = new Image(); kirbySube.src = assetRoot + "img/kirby_sube.png";
