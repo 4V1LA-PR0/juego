@@ -1,8 +1,9 @@
 // ==================================================
 // MÚSICA DE FONDO
-// Suena mientras juegas los 4 niveles.
-// Se pausa en la pantalla de inicio y en las pantallas finales
-// (así se escuchan los audios de tus amigos al perder).
+// Suena todo el juego, también en las pantallas de "Siguiente nivel".
+// Solo se pausa:
+//   - en la pantalla de inicio
+//   - mientras Kirby "habla" con el audio de tus amigos (al perder)
 // Incluye un botón 🔊 / 🔇 arriba a la derecha para silenciarla.
 // ==================================================
 document.addEventListener("DOMContentLoaded", () => {
@@ -13,8 +14,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Tu canción: ponla en la carpeta audios con este nombre
   const MUSICA = RAIZ + "audios/fondo.mp3";
 
-  // Volumen de 0 a 1 (0.4 = suave, para que no tape los demás audios)
+  // Volumen de 0 a 1 (0.4 = suave)
   const VOLUMEN = 0.4;
+
+  // Imagen de Kirby con la boca abierta (la que sale cuando suena el audio)
+  const IMG_BOCA = "kirby_boca.png";
 
   const inicio = document.getElementById("start");
   const finalScreen = document.getElementById("finalScreen");
@@ -31,22 +35,32 @@ document.addEventListener("DOMContentLoaded", () => {
     return getComputedStyle(el).display !== "none";
   }
 
+  // ¿Kirby está hablando ahora mismo? (boca abierta)
+  function kirbyHablando() {
+    const img = finalScreen.querySelector("img");
+    return !!img && (img.getAttribute("src") || "").endsWith(IMG_BOCA);
+  }
+
   // Decide si la música debe sonar o estar en pausa
   function actualizar() {
-    const jugando = !visible(inicio) && !visible(finalScreen);
+    const debeSonar = !visible(inicio) && !kirbyHablando() && !silenciada;
 
-    if (jugando && !silenciada) {
+    if (debeSonar) {
       if (musica.paused) musica.play().catch(() => {});
     } else if (!musica.paused) {
       musica.pause();
     }
   }
 
-  // Revisa cada vez que cambian la pantalla de inicio o la final
+  // Revisa cuando cambia la pantalla de inicio o la pantalla final
   const observador = new MutationObserver(actualizar);
-  const opciones = { attributes: true, attributeFilter: ["style", "class"] };
-  observador.observe(inicio, opciones);
-  observador.observe(finalScreen, opciones);
+  observador.observe(inicio, { attributes: true, attributeFilter: ["style", "class"] });
+  observador.observe(finalScreen, {
+    attributes: true,
+    attributeFilter: ["style", "class", "src"],
+    childList: true,
+    subtree: true
+  });
 
   // El navegador solo deja sonar audio después de un toque del jugador,
   // así que se vuelve a intentar con cada toque o tecla
