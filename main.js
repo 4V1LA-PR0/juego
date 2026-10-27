@@ -314,16 +314,17 @@ function endCatchGame() {
   canvas.style.display = "none";
   finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
   finalScreen.style.background = "#fff0f5";
+  const won = score >= targetCats;
   let result = "";
-  if (score >= targetCats) result = `<h1>🐱 ¡Ganaste! 🐱</h1><p>¡Salvaste a todos los gatitos!</p>`;
+  if (won) result = `<h1>🐱 ¡Ganaste! 🐱</h1><p>¡Salvaste a todos los gatitos!</p>`;
   else if (score >= 7) result = `<h1>Casi lo logras</h1><p>Casi salvas a todos los gatitos</p>`;
   else if (score >= 5) result = `<h1>Buen intento</h1><p>Los gatitos necesitan más ayuda</p>`;
   else result = `<h1>Perdiste</h1><p>Los gatitos se perdieron 😿</p>`;
-  const finalImg = score >= targetCats ? kirbyFeliz : kirbyTriste;
-  finalScreen.innerHTML = `${result}<img src="${finalImg}" width="180"><p>🐱 Gatitos: ${score}/${targetCats}</p><p>❤️ Vidas: ${lives}</p><button id="btnNextLevel">Siguiente nivel ➜</button>`;
+  const finalImg = won ? kirbyFeliz : kirbyTriste;
+  finalScreen.innerHTML = `${result}<img src="${finalImg}" width="180"><p>🐱 Gatitos: ${score}/${targetCats}</p><p>❤️ Vidas: ${lives}</p><button id="btnNextLevel">${won ? "Siguiente nivel ➜" : "Reiniciar"}</button>`;
   const btn = document.getElementById("btnNextLevel");
-  btn.addEventListener("click", startCardGame);
-  btn.addEventListener("touchstart", (e) => { e.preventDefault(); startCardGame(); }, { passive: false });
+  btn.addEventListener("click", () => { if (won) startCardGame(); else startGame(); });
+  btn.addEventListener("touchstart", (e) => { e.preventDefault(); if (won) startCardGame(); else startGame(); }, { passive: false });
 }
 
 // ===== NIVEL 3 =====

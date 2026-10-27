@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
       titulo: "Flappy Kirby",
       objetivo: "Ayuda a Kirby a volar y recoger flores.",
       puntos: [
-        "Doña toque la pantalla para que Kirby suba. Si no lo hace, se va a caer peor que las selecciones.",
+        "Doña toque la pantalla para que Kirby suba. Si no lo hace, se va a caer peor que las elecciones.",
         "Recoja las 10 flores para pasar de nivel.",
         "Tiene que esquivar las nubes.",
         "Si toca una nube o el borde de arriba o de abajo, pierde."
@@ -22,10 +22,10 @@ document.addEventListener("DOMContentLoaded", () => {
     },
     2: {
       emoji: "🐱",
-      titulo: "Rescate los gatos blancos",
+      titulo: "Rescate los gatos blancos y Gatos con audifonos",
       objetivo: "Toque a los gatitos que van cayendo para rescatarlos.",
       puntos: [
-        "Toque los gatitos para salvarlos. Tiene que rescatar 10 gatos",
+        "Toque los gatitos para salvarlos. Tiene que rescatar 10 gatitos",
         "No toque a los gatos negros y alienigenas porque la arañan y le quitan una vida.",
         "Tampoco toque al ratón ni al perro, son bravos.",
         "Tienes 3 vidas. También pierdes una si un gatito cae sin que lo rescates."
@@ -139,7 +139,9 @@ document.addEventListener("DOMContentLoaded", () => {
     switch (boton.id) {
       case "btnStart":     return 1;
       case "btnNext":      return 2;
-      case "btnNextLevel": return contenidoFinal.includes("pares") ? 4 : 3;
+      case "btnNextLevel":
+        if (texto.includes("reiniciar")) return 1;
+        return contenidoFinal.includes("pares") ? 4 : 3;
       case "btnAction":    return texto.includes("siguiente") ? 4 : 1;
       case "btnRestart":   return texto.includes("inicio") ? null : 1;
       default:             return null;
