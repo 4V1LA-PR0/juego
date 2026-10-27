@@ -404,7 +404,7 @@ function endCardGame() {
   const totalPairs = images.length, foundPairs = matches;
   let msg = "", showNext = false;
   if (foundPairs === totalPairs) { msg = `<h1>💖 ¡Ganaste! 💖</h1><p>Encontraste todos los pares</p>`; showNext = true; }
-  else if (foundPairs > 0) { msg = `<h1>⏱️ Tiempo!</h1><p>Encontraste ${foundPairs}/${totalPairs} pares</p>`; showNext = true; }
+  else if (foundPairs > 0) { msg = `<h1>⏱️ Tiempo!</h1><p>Encontraste ${foundPairs}/${totalPairs} pares</p>`; }
   else { msg = `<h1>⏱️ Tiempo!</h1><p>No encontraste pares</p>`; }
   if (!showNext) window.dispatchEvent(new Event("game:lost"));
   finalScreen.innerHTML = `${msg}<button id="btnAction">${showNext ? 'Siguiente nivel ➜' : 'Reiniciar'}</button>`;

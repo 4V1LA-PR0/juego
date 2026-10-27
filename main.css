@@ -286,8 +286,37 @@ footer {
     }
 
     .dpad {
-        grid-template-columns: repeat(3, 55px);
-        grid-template-rows: repeat(2, 48px);
+        grid-template-columns: repeat(3, 62px);
+        grid-template-rows: repeat(2, 58px);
+        gap: 7px;
+        margin: 0 auto;
+        padding: 12px;
+        width: max-content;
+        background: linear-gradient(145deg, #393054, #211d37);
+        border: 3px solid #8e7ab9;
+        border-radius: 24px;
+        box-shadow: 0 6px #17152a, inset 0 2px rgb(255 255 255 / 12%);
+    }
+
+    .direction {
+        min-width: 56px;
+        min-height: 52px;
+        color: #fff8df;
+        background: linear-gradient(145deg, #a277d3, #684b9b);
+        border: 3px solid #d9c4ff;
+        border-radius: 18px;
+        box-shadow: 0 5px #44305f, inset 0 2px rgb(255 255 255 / 24%);
+        font-size: 24px;
+        font-weight: bold;
+        text-shadow: 0 2px #44305f;
+    }
+
+    .direction:active,
+    .direction.pressed {
+        transform: translateY(4px) scale(0.96);
+        color: white;
+        background: linear-gradient(145deg, #f08abd, #d74f96);
+        box-shadow: 0 1px #8f3566, inset 0 2px rgb(255 255 255 / 18%);
     }
 }
 
