@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     RAIZ + "audios/perdio2.mp3",
     RAIZ + "audios/perdio3.mp3",
     RAIZ + "audios/perdio4.mp3",
+    RAIZ + "audios/perdio5.mp3"
   ];
 
   // Tiempo (ms) que se ignoran los toques justo después de perder,

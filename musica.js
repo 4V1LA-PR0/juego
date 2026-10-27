@@ -30,6 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   musica.preload = "auto";
 
   let silenciada = false;
+  let pausaPorDerrota = false;
 
   function visible(el) {
     return getComputedStyle(el).display !== "none";
@@ -43,6 +44,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Decide si la música debe sonar o estar en pausa
   function actualizar() {
+    if (pausaPorDerrota) {
+      if (visible(finalScreen)) {
+        if (!musica.paused) musica.pause();
+        return;
+      }
+      pausaPorDerrota = false;
+    }
+
     const debeSonar = !visible(inicio) && !kirbyHablando() && !silenciada;
 
     if (debeSonar) {
@@ -51,6 +60,12 @@ document.addEventListener("DOMContentLoaded", () => {
       musica.pause();
     }
   }
+
+  window.addEventListener("game:lost", () => {
+    pausaPorDerrota = true;
+    musica.pause();
+    musica.currentTime = 0;
+  });
 
   // Revisa cuando cambia la pantalla de inicio o la pantalla final
   const observador = new MutationObserver(actualizar);

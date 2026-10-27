@@ -109,11 +109,12 @@ function checkCollisions() {
 function endGame(win) {
   if (!gameRunning) return;
   gameRunning = false;
+  if (!win) window.dispatchEvent(new Event("game:lost"));
   canvas.style.display = "none";
   finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
   finalScreen.style.background = win ? "#fff0f5" : "#ffe4e1";
   finalScreen.innerHTML = win
-    ? `<h1>!Kirby lo logró¡</h1><img src="${kirbyFeliz}" width="180"><p>Gano Doñita</p><button id="btnRestart">Reiniciar</button>`
+    ? `<h1>!Kirby lo logró¡</h1><img src="${kirbyFeliz}" width="190"><p>Gano Doñita</p><button id="btnRestart">Reiniciar</button>`
     : `<h1>kirby a perdido</h1><img src="${kirbyTriste}" width="180"><p>Usted puede doña</p><button id="btnRestart">Reiniciar</button>`;
   const btnRestart = document.getElementById("btnRestart");
   btnRestart.addEventListener("click", startGame);
@@ -136,7 +137,7 @@ function endLevel1() {
   canvas.style.display = "none";
   finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
   finalScreen.style.background = "#fff0f5";
-  finalScreen.innerHTML = `<h1>🌸 Nivel superado 🌸</h1><p>Kirby recolectó todas las flores</p><button id="btnNext">Siguiente nivel ➜</button>`;
+  finalScreen.innerHTML = `<h1>🌸 Nivel superado 🌸</h1><img src="${kirbyFeliz}" width="180"><p>Kirby recolectó todas las flores</p><button id="btnNext">Siguiente nivel ➜</button>`;
   const btnNext = document.getElementById("btnNext");
   btnNext.addEventListener("click", startCatchGame);
   btnNext.addEventListener("touchstart", e => { e.preventDefault(); startCatchGame(); }, { passive: false });
@@ -309,6 +310,7 @@ canvas.addEventListener("touchstart", e => {
 
 function endCatchGame() {
   gameRunning = false; stopLevel2();
+  if (score < targetCats) window.dispatchEvent(new Event("game:lost"));
   scratchOverlay.style.display = "none";
   document.getElementById("level2Intro").classList.add("hidden");
   canvas.style.display = "none";
@@ -404,6 +406,7 @@ function endCardGame() {
   if (foundPairs === totalPairs) { msg = `<h1>💖 ¡Ganaste! 💖</h1><p>Encontraste todos los pares</p>`; showNext = true; }
   else if (foundPairs > 0) { msg = `<h1>⏱️ Tiempo!</h1><p>Encontraste ${foundPairs}/${totalPairs} pares</p>`; showNext = true; }
   else { msg = `<h1>⏱️ Tiempo!</h1><p>No encontraste pares</p>`; }
+  if (!showNext) window.dispatchEvent(new Event("game:lost"));
   finalScreen.innerHTML = `${msg}<button id="btnAction">${showNext ? 'Siguiente nivel ➜' : 'Reiniciar'}</button>`;
   const btn = document.getElementById("btnAction");
   btn.addEventListener("click", () => { if (showNext) startPencilGame(); else startGame(); });
@@ -670,6 +673,7 @@ document.querySelectorAll(".direction").forEach(btn => {
 function endPencilGame(won, text) {
   if (pGameState !== "playing") return;
   pGameState = won ? "won" : "lost";
+  if (!won) window.dispatchEvent(new Event("game:lost"));
   if (pAnimId) { cancelAnimationFrame(pAnimId); pAnimId = null; }
   document.getElementById("pencilGame").classList.add("hidden");
   finalScreen.style.display = "flex"; finalScreen.classList.remove("hidden");
